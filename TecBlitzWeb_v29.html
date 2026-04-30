@@ -3389,14 +3389,16 @@
     const m = document.getElementById(id);
     m.classList.add('open');
     if(id==='call-modal'){
-        const today = new Date().toISOString().split('T')[0];
+        const now = new Date();
+        const todayLocal = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+        const timeLocal = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
         if(!data){
         document.getElementById('call-edit-id').value='';
         document.getElementById('call-modal-title').textContent='Log a Call';
         document.getElementById('c-biz').value='';
         document.getElementById('c-outcome').value='';
-        document.getElementById('c-date').value=today;
-        document.getElementById('c-time').value='';
+        document.getElementById('c-date').value=todayLocal;
+        document.getElementById('c-time').value=timeLocal;
         document.getElementById('c-duration').value='';
         document.getElementById('c-followup').value='';
         document.getElementById('c-notes').value='';
@@ -3405,8 +3407,10 @@
         document.getElementById('call-modal-title').textContent='Edit Call';
         document.getElementById('c-biz').value=data.biz;
         document.getElementById('c-outcome').value=data.outcome;
-        document.getElementById('c-date').value=data.date;
-        document.getElementById('c-time').value=data.time||'';
+        document.getElementById('c-date').value=(data.date && String(data.date).slice(0, 10)) || todayLocal;
+        var t = (data.time != null && String(data.time).trim() !== '') ? String(data.time).trim() : timeLocal;
+        if(t.length > 5) t = t.slice(0, 5);
+        document.getElementById('c-time').value=t;
         document.getElementById('c-duration').value=data.duration||'';
         document.getElementById('c-followup').value=data.followup||'';
         document.getElementById('c-notes').value=data.notes||'';
@@ -3798,8 +3802,11 @@
     const id = document.getElementById('call-edit-id').value;
     const biz = document.getElementById('c-biz').value.trim();
     const outcome = document.getElementById('c-outcome').value;
-    const date = document.getElementById('c-date').value;
-    const time = document.getElementById('c-time').value;
+    const now = new Date();
+    const stampDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const stampTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    let date = document.getElementById('c-date').value;
+    let time = document.getElementById('c-time').value;
     const duration = document.getElementById('c-duration').value;
     const followup = document.getElementById('c-followup').value||null;
     const notes = document.getElementById('c-notes').value.trim();
@@ -3807,12 +3814,27 @@
     // Validation
     if(!biz){ showToast('Business name is required','error'); return; }
     if(!outcome){ showToast('Outcome is required','error'); return; }
-    if(!date){ showToast('Call date is required','error'); return; }
-    if(!time){ showToast('Call time is required','error'); return; }
     if(!duration){ showToast('Duration is required','error'); return; }
     if(duration < 1 || duration > 999){ showToast('Duration must be 1-999 minutes','error'); return; }
     if(notes.length > 2000){ showToast('Notes cannot exceed 2000 characters','error'); return; }
+    if(!id){
+        date = stampDate;
+        time = stampTime;
+    } else {
+        if(!date){ showToast('Call date is required','error'); return; }
+        if(!time || !String(time).trim()){ time = stampTime; }
+        time = String(time).trim().slice(0, 5);
+        if(!/^\d{2}:\d{2}$/.test(time)){
+        const p = time.match(/^(\d{1,2}):(\d{2})/);
+        if(p) time = String(parseInt(p[1], 10)).padStart(2, '0') + ':' + p[2];
+        else time = stampTime;
+        }
+    }
     
+    const existingCall = id ? getCalls().find(function(c){ return String(c.id) === String(id); }) : null;
+    const createdAtIso = id && existingCall && (existingCall.createdAt || existingCall.createdat)
+        ? (existingCall.createdAt || existingCall.createdat)
+        : now.toISOString();
     const obj = {
         id: id||Date.now().toString(),
         rep: currentUser,
@@ -3820,10 +3842,10 @@
         outcome: outcome,
         date: date,
         time: time,
-        duration: parseInt(duration),
+        duration: parseInt(duration, 10),
         followup: followup,
         notes: notes,
-        createdAt: id?undefined:new Date().toISOString()
+        createdAt: createdAtIso
     };
     
     let calls = getCalls();
@@ -3843,7 +3865,7 @@
         followup: obj.followup || null,
         notes: obj.notes,
         rep: obj.rep,
-        createdat: obj.createdAt || new Date().toISOString()
+        createdat: createdAtIso
         }]).then(({ error }) => {
         if(error) console.error('❌ Call save failed:', error.message, '| code:', error.code);
         else console.log('✓ Call synced to cloud');

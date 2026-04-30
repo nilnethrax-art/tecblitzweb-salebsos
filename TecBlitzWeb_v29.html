@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TecBlitzWeb Sales OS</title>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script>
-    emailjs.init("8B97-7r8HNS8tQN9Q");
-    </script>
+    <!-- EmailJS removed: login notifications are console-only (no template/network errors). -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./config.js"></script>
     <script src="./api.js"></script>
@@ -3126,13 +3123,15 @@
     if(window._closedDealsTableMissing && table === 'closed_deals') return null;
     try {
         const HDR = window.BASE_HDR;
+        if(!window.SB_URL || !HDR) return null;
         const r = await fetch(window.SB_URL + '/rest/v1/' + table + '?select=*', { headers: HDR });
         if(r.status === 404 || r.status === 400){
         if(table === 'closed_deals') window._closedDealsTableMissing = true;
         return null;
         }
-        const data = await r.json();
-        if(!r.ok){ console.warn('⚠️ Cloud load warning ['+table+']:', data?.message || r.status); return null; }
+        var data = null;
+        try { data = await r.json(); } catch(_je){ return null; }
+        if(!r.ok){ console.warn('⚠️ Cloud load warning ['+table+']:', (data && data.message) || r.status); return null; }
         return Array.isArray(data) ? data : [];
     } catch(e){ console.log('Cloud load error:', e); return null; }
     }
@@ -3300,18 +3299,27 @@
         return;
         }
 
+        var user;
+        try{
         const res = await fetch(window.SB_URL + '/rest/v1/sales_users' +
         '?email=eq.' + encodeURIComponent(email) + '&select=name,email,role', {
         headers: window.BASE_HDR
         });
-        const users = await res.json().catch(() => []);
-        const user = Array.isArray(users) && users[0]
-        ? users[0]
-        : {
+        var users = [];
+        try{ users = await res.json(); }catch(_je){ users = []; }
+        if(!Array.isArray(users)) users = [];
+        user = users[0] || {
             name: (authUser.user_metadata && authUser.user_metadata.full_name) || (authUser.email ? authUser.email.split('@')[0] : email),
             email: authUser.email || email,
             role: 'User'
             };
+        }catch(_fe){
+        user = {
+            name: (authUser.user_metadata && authUser.user_metadata.full_name) || (authUser.email ? authUser.email.split('@')[0] : email),
+            email: authUser.email || email,
+            role: 'User'
+        };
+        }
         currentUser = user.name;
     
         sendLoginEmailNotification(user);
@@ -3755,80 +3763,13 @@
     }
     function sendLoginEmailNotification(user){
     try{
-        if(typeof emailjs === 'undefined' || typeof emailjs.send !== 'function') return;
-        if(window._loginEmailJsDisabled) return;
-        var ua = navigator.userAgent || '';
-        var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
-        var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
-        var payload = {
-        username: user.name,
-        name: user.name,
-        user_name: user.name,
-        role: user.role,
-        user_role: user.role,
-        to_email: user.email,
-        user_email: user.email,
-        email: user.email,
-        reply_to: user.email,
-        from_name: 'TecBlitzWeb Sales OS',
-        subject: '[SalesOS Login] ' + user.name + ' logged in',
-        title: '[SalesOS Login] ' + user.name,
-        message: 'User: ' + user.name + '\nRole: ' + user.role + '\nTime: ' + new Date().toISOString() + '\nDevice: ' + device + '\nBrowser: ' + browser,
-        login_time: new Date().toLocaleTimeString(),
-        login_date: new Date().toLocaleDateString(),
-        browser: browser,
-        device: device
-        };
-        emailjs.send('service_fd17s6b', 'ql5vgau', payload).then(function(){
-        console.log('Login email sent!');
-        }).catch(function(err){
-        var msg = err && (err.text || err.message || String(err));
-        if(err && (err.status === 400 || (msg && msg.indexOf('400') >= 0))) window._loginEmailJsDisabled = true;
-        console.warn('Login email skipped (EmailJS):', msg);
-        });
-    }catch(e){
-        console.warn('Login email skipped:', e);
+        console.log('[login email disabled — would notify]', user && user.name, user && user.role, user && user.email, new Date().toISOString());
+    }catch(_e){}
     }
-    }
-    async function tryInsertLoginLog(user){
+    async function tryInsertLoginLog(_user){
     try{
-        if(window._loginLogsTableMissing || !user) return;
-        if(window.APP_API && typeof window.APP_API.insertLoginLogSafe === 'function'){
-        var ua = navigator.userAgent || '';
-        var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
-        var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
-        await window.APP_API.insertLoginLogSafe({
-            username: user.name,
-            role: user.role,
-            login_time: new Date().toISOString(),
-            browser: browser,
-            device: device
-        });
-        return;
-        }
-        if(!window.SB_URL || !window.BASE_HDR) return;
-        var ua2 = navigator.userAgent || '';
-        var browser2 = (ua2.split(')')[0] || '').split('(').pop() || 'Unknown';
-        var device2 = /Mobi|Android/i.test(ua2) ? 'Mobile' : 'Desktop';
-        var r = await fetch(window.SB_URL + '/rest/v1/login_logs', {
-        method: 'POST',
-        headers: window.BASE_HDR,
-        body: JSON.stringify([{
-            username: user.name,
-            role: user.role,
-            login_time: new Date().toISOString(),
-            browser: browser2,
-            device: device2
-        }])
-        });
-        if(r.status === 404 || r.status === 406) window._loginLogsTableMissing = true;
-        else if(!r.ok){
-        var txt = await r.text().catch(function(){ return ''; });
-        if(r.status === 400 || /relation|does not exist|not find/i.test(txt || '')) window._loginLogsTableMissing = true;
-        }
-    }catch(_e){
-        /* login_logs optional — never break login */
-    }
+        if(window.APP_API && typeof window.APP_API.insertLoginLogSafe === 'function') await window.APP_API.insertLoginLogSafe(null);
+    }catch(_e){}
     }
     async function loadDashboard(){
     try{
@@ -4369,9 +4310,15 @@
         // Upsert closed_deals — table not yet created in Supabase, skip to avoid 404
         // When the table is created, remove the _closedDealsTableMissing flag here
         if(!window._closedDealsTableMissing){
-        fetch(window.SB_URL+'/rest/v1/closed_deals',{method:'POST',headers:Object.assign({}, window.BASE_HDR, {'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(formatted)})
-            .then(r=>{ if(r.status===404||r.status===400){ window._closedDealsTableMissing=true; return; } if(r.ok) console.log('✓ closed_deals synced to cloud'); else r.json().then(d=>console.warn('⚠️ closed_deals sync issue:',d?.message)); })
-            .catch(e=>{ window._closedDealsTableMissing=true; });
+        (async function(){
+            try{
+            if(!window.SB_URL || !window.BASE_HDR) return;
+            const r = await fetch(window.SB_URL+'/rest/v1/closed_deals',{method:'POST',headers:Object.assign({}, window.BASE_HDR, {'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(formatted)});
+            if(r.status===404||r.status===400){ window._closedDealsTableMissing=true; return; }
+            if(r.ok) console.log('✓ closed_deals synced to cloud');
+            else { try{ const d = await r.json(); console.warn('⚠️ closed_deals sync issue:', d && d.message); }catch(_e){} }
+            }catch(_e){ window._closedDealsTableMissing=true; }
+        })();
         }
     }
     }
@@ -4454,8 +4401,9 @@
             messages:[{role:'user',content:prompt}]
         })
         });
-        const data = await res.json();
-        const text = data.content?.[0]?.text||'No response received.';
+        var data = {};
+        try{ data = await res.json(); }catch(_je){ data = {}; }
+        const text = (data && data.content && data.content[0] && data.content[0].text) || 'No response received.';
         const sections = ['TODAY\'S PERFORMANCE','TOP PERFORMERS','HOT LEADS','FOLLOW-UPS DUE','TOMORROW\'S RECOMMENDATION'];
         let html = text;
         sections.forEach(s=>{
@@ -4844,8 +4792,9 @@
             messages: aiChatHistory
         })
         });
-        const data = await res.json();
-        const reply = data.content?.[0]?.text || 'Sorry, I could not get a response.';
+        var data = {};
+        try{ data = await res.json(); }catch(_je){ data = {}; }
+        const reply = (data && data.content && data.content[0] && data.content[0].text) || 'Sorry, I could not get a response.';
         aiChatHistory.push({role:'assistant', content: reply});
 
         // Remove typing, show reply

@@ -3162,18 +3162,7 @@ async function _doFocusSync(){
   }
   const cloudCalls = await loadFromCloud('calls');
   if(cloudCalls && cloudCalls.length > 0){
-    const calls = cloudCalls.map(c => ({
-      id: c.id ? c.id.toString() : c.id,
-      rep: c.rep,
-      biz: c.prospect || '',
-      outcome: c.outcome,
-      date: c.date || '',
-      time: c.time || '',
-      duration: c.duration || 0,
-      followup: c.followup || null,
-      notes: c.notes,
-      createdAt: c.createdat || c.createdAt
-    }));
+    const calls = cloudCalls.map(normalizeCloudCallRow).filter(Boolean);
     ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
     console.log('✓ Auto-synced calls on focus:', calls.length, 'records');
     // Re-render any active page that depends on calls
@@ -3325,32 +3314,8 @@ async function doLogin(){
         };
     currentUser = user.name;
   
-    emailjs.send("service_fd17s6b", "ql5vgau", {
-      username:   user.name,
-      role:       user.role,
-      to_email:   user.email,
-      login_time: new Date().toLocaleTimeString(),
-      login_date: new Date().toLocaleDateString(),
-      browser:    navigator.userAgent.split(')')[0].split('(')[1] || 'Unknown',
-      device:     /Mobi|Android/i.test(navigator.userAgent) 
-                  ? 'Mobile' : 'Desktop'
-    }).then(() => {
-      console.log("Login email sent!");
-    }).catch((err) => {
-      console.warn("Email log failed:", err);
-    });
-
-    fetch(window.SB_URL + '/rest/v1/login_logs', {
-      method: 'POST',
-      headers: window.BASE_HDR,
-      body: JSON.stringify([{
-        username: user.name,
-        role: user.role,
-        login_time: new Date().toISOString(),
-        browser: navigator.userAgent.split(')')[0].split('(')[1] || 'Unknown',
-        device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
-      }])
-    }).catch(err => console.warn('login_logs insert failed:', err));
+    sendLoginEmailNotification(user);
+    void tryInsertLoginLog(user);
 
     setLoading(false);
     launchApp(user.name, user.role);
@@ -3666,6 +3631,186 @@ function openCallModalForProspect(biz){
 // ════════════════════════════════════════
 // CALLS CRUD
 // ════════════════════════════════════════
+function canonicalRepKey(rep){
+  if(rep == null || rep === '') return '';
+  var s = String(rep).trim();
+  if(typeof USERS !== 'undefined' && USERS[s]) return s;
+  var lower = s.toLowerCase();
+  for(var k in USERS){
+    if(!USERS[k]) continue;
+    if(String(k).toLowerCase() === lower) return k;
+    if(USERS[k].name && String(USERS[k].name).toLowerCase() === lower) return k;
+  }
+  return s;
+}
+function normalizeCloudCallRow(c){
+  if(!c) return null;
+  var id = (c.id != null && c.id !== '') ? String(c.id) : ('call_' + String(c.createdat || c.createdAt || Date.now()) + '_' + Math.random().toString(36).slice(2, 9));
+  var rawDate = c.date || (c.created_at != null ? String(c.created_at) : '') || (c.createdat != null ? String(c.createdat) : '') || (c.createdAt != null ? String(c.createdAt) : '');
+  var dateYmd = '';
+  if(rawDate){
+    var mm = String(rawDate).match(/^(\d{4}-\d{2}-\d{2})/);
+    dateYmd = mm ? mm[1] : '';
+  }
+  return {
+    id: id,
+    rep: canonicalRepKey(c.rep || ''),
+    biz: (c.prospect != null && String(c.prospect).trim() !== '') ? String(c.prospect) : ((c.biz != null && String(c.biz).trim() !== '') ? String(c.biz) : ''),
+    outcome: c.outcome || 'No Answer',
+    date: dateYmd,
+    time: c.time || '',
+    duration: parseInt(c.duration, 10) || 0,
+    followup: c.followup || null,
+    notes: c.notes || '',
+    createdAt: c.createdat || c.createdAt || new Date().toISOString()
+  };
+}
+function mapCloudRowToAcRow(c){
+  var row = normalizeCloudCallRow(c);
+  if(!row) return null;
+  return {
+    id: row.id,
+    biz: row.biz || 'Unknown',
+    phone: c.phone || '—',
+    date: row.date || (c.created_at ? String(c.created_at).split('T')[0] : ''),
+    time: row.time || '09:00',
+    duration: row.duration || 0,
+    outcome: row.outcome || 'No Answer',
+    rep: row.rep || 'Unknown',
+    notes: row.notes || '',
+    ts: c.ts || (row.date ? new Date(row.date + 'T' + (row.time || '09:00')).getTime() : Date.now())
+  };
+}
+function dashParseCallDateYmd(call){
+  if(!call) return '';
+  if(call.date){
+    var m = String(call.date).match(/^(\d{4}-\d{2}-\d{2})/);
+    if(m) return m[1];
+    var t = Date.parse(call.date);
+    if(!isNaN(t)) return new Date(t).toISOString().split('T')[0];
+  }
+  if(call.createdAt){
+    var ca = String(call.createdAt).slice(0, 10);
+    if(/^\d{4}-\d{2}-\d{2}$/.test(ca)) return ca;
+  }
+  return '';
+}
+function dashCalendarWeekBounds(){
+  var now = new Date();
+  var localMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var dow = localMidnight.getDay();
+  var mondayOffset = dow === 0 ? -6 : 1 - dow;
+  var mon = new Date(localMidnight);
+  mon.setDate(localMidnight.getDate() + mondayOffset);
+  var sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  function fmt(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  return { start: fmt(mon), end: fmt(sun) };
+}
+function dashCalendarMonthBounds(){
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth();
+  var start = new Date(y, m, 1);
+  var end = new Date(y, m + 1, 0);
+  function fmt(d){
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  return { start: fmt(start), end: fmt(end) };
+}
+function sendLoginEmailNotification(user){
+  try{
+    if(typeof emailjs === 'undefined' || typeof emailjs.send !== 'function') return;
+    if(window._loginEmailJsDisabled) return;
+    var ua = navigator.userAgent || '';
+    var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
+    var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
+    var payload = {
+      username: user.name,
+      name: user.name,
+      user_name: user.name,
+      role: user.role,
+      user_role: user.role,
+      to_email: user.email,
+      user_email: user.email,
+      email: user.email,
+      reply_to: user.email,
+      from_name: 'TecBlitzWeb Sales OS',
+      subject: '[SalesOS Login] ' + user.name + ' logged in',
+      title: '[SalesOS Login] ' + user.name,
+      message: 'User: ' + user.name + '\nRole: ' + user.role + '\nTime: ' + new Date().toISOString() + '\nDevice: ' + device + '\nBrowser: ' + browser,
+      login_time: new Date().toLocaleTimeString(),
+      login_date: new Date().toLocaleDateString(),
+      browser: browser,
+      device: device
+    };
+    emailjs.send('service_fd17s6b', 'ql5vgau', payload).then(function(){
+      console.log('Login email sent!');
+    }).catch(function(err){
+      var msg = err && (err.text || err.message || String(err));
+      if(err && (err.status === 400 || (msg && msg.indexOf('400') >= 0))) window._loginEmailJsDisabled = true;
+      console.warn('Login email skipped (EmailJS):', msg);
+    });
+  }catch(e){
+    console.warn('Login email skipped:', e);
+  }
+}
+async function tryInsertLoginLog(user){
+  if(window._loginLogsTableMissing) return;
+  try{
+    if(!window.SB_URL || !window.BASE_HDR) return;
+    var ua = navigator.userAgent || '';
+    var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
+    var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
+    var r = await fetch(window.SB_URL + '/rest/v1/login_logs', {
+      method: 'POST',
+      headers: window.BASE_HDR,
+      body: JSON.stringify([{
+        username: user.name,
+        role: user.role,
+        login_time: new Date().toISOString(),
+        browser: browser,
+        device: device
+      }])
+    });
+    if(r.status === 404 || r.status === 406){
+      window._loginLogsTableMissing = true;
+      console.info('login_logs table missing; skipping future login_logs writes.');
+      return;
+    }
+    if(!r.ok){
+      var txt = await r.text().catch(function(){ return ''; });
+      if(r.status === 400 || /relation|does not exist|not find/i.test(txt)) window._loginLogsTableMissing = true;
+      console.warn('login_logs insert:', r.status, (txt || '').slice(0, 200));
+    }
+  }catch(e){
+    console.warn('login_logs insert failed:', e);
+  }
+}
+async function loadDashboard(){
+  try{
+    if(sbReady && sbClient){
+      var res = await sbClient.from('calls').select('*');
+      var data = res && res.data;
+      var err = res && res.error;
+      if(!err && Array.isArray(data)){
+        var calls = data.map(normalizeCloudCallRow).filter(Boolean);
+        ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
+      }
+    } else if(typeof loadFromCloud === 'function' && window.SB_URL && window.BASE_HDR){
+      var cloudCalls = await loadFromCloud('calls');
+      if(cloudCalls && cloudCalls.length){
+        var calls2 = cloudCalls.map(normalizeCloudCallRow).filter(Boolean);
+        ls('calls', mergeByIdPreserveLocal(calls2, getCalls()));
+      }
+    }
+  }catch(e){
+    console.warn('loadDashboard cloud pull failed:', e);
+  }
+  if(typeof renderDashboard === 'function') renderDashboard();
+}
 function getCalls(){ return getData('calls',[]); }
 function saveCall(){
   const id = document.getElementById('call-edit-id').value;
@@ -3731,18 +3876,7 @@ function saveCall(){
   if (allCallsPage && allCallsPage.classList.contains('active') && _acInited) {
     window.supabase.from('calls').select('*').then(({ data, error }) => {
       if (!error && data) {
-        acAllData = data.map(c => ({
-          id: c.id || String(c.created_at),
-          biz: c.prospect || 'Unknown',
-          phone: c.phone || '—',
-          date: c.date || (c.created_at ? c.created_at.split('T')[0] : ''),
-          time: c.time || '09:00',
-          duration: c.duration || 0,
-          outcome: c.outcome || 'No Answer',
-          rep: (typeof USERS !== 'undefined' && USERS[c.rep]) ? USERS[c.rep].name : (c.rep || 'Unknown'),
-          notes: c.notes || '',
-          ts: c.ts || (c.date ? new Date(c.date + 'T' + (c.time || '09:00')).getTime() : Date.now())
-        }));
+        acAllData = data.map(mapCloudRowToAcRow).filter(Boolean);
         acAllData.sort((a, b) => b.ts - a.ts);
         acLastUpdated = Date.now();
         acApplyFilters();
@@ -3793,7 +3927,7 @@ function renderMyCalls(){
   let calls = getCalls().filter(c=>c.rep===currentUser);
   const q = (document.getElementById('calls-search')||{}).value||'';
   const f = (document.getElementById('calls-filter')||{}).value||'';
-  if(q) calls = calls.filter(c=>c.biz.toLowerCase().includes(q.toLowerCase())||((c.notes||'').toLowerCase().includes(q.toLowerCase())));
+  if(q) calls = calls.filter(c=>(c.biz||'').toLowerCase().includes(q.toLowerCase())||((c.notes||'').toLowerCase().includes(q.toLowerCase())));
   if(f) calls = calls.filter(c=>c.outcome===f);
   calls.sort((a,b)=>b.date.localeCompare(a.date));
   if(!calls.length){
@@ -3826,7 +3960,7 @@ function dashSetRange(range, btn){
   // Only clear buttons inside the dashboard range row (not All Calls page buttons)
   document.querySelectorAll('[data-dash-range]').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  renderDashRecentCalls();
+  if(typeof renderDashboard === 'function') renderDashboard();
 }
 
 function renderDashRecentCalls(){
@@ -3839,16 +3973,22 @@ function renderDashRecentCalls(){
   else myCalls = allCalls;
 
   // Filter by range
-  let filtered = myCalls.filter(c=>c.biz);
+  let filtered = myCalls.filter(c=>c);
   const rangeLabel = document.getElementById('dash-recent-range-label');
   if(_dashRange==='week'){
-    const weekAgo = new Date(Date.now()-7*86400000).toISOString().split('T')[0];
-    filtered = filtered.filter(c=>c.date && c.date>=weekAgo);
-    if(rangeLabel) rangeLabel.textContent = filtered.length + ' call' + (filtered.length!==1?'s':'') + ' in last 7 days';
+    const wb = dashCalendarWeekBounds();
+    filtered = filtered.filter(function(c){
+      var ymd = dashParseCallDateYmd(c);
+      return ymd && ymd >= wb.start && ymd <= wb.end;
+    });
+    if(rangeLabel) rangeLabel.textContent = filtered.length + ' call' + (filtered.length!==1?'s':'') + ' this week (' + wb.start + ' – ' + wb.end + ')';
   } else if(_dashRange==='month'){
-    const monthAgo = new Date(Date.now()-30*86400000).toISOString().split('T')[0];
-    filtered = filtered.filter(c=>c.date && c.date>=monthAgo);
-    if(rangeLabel) rangeLabel.textContent = filtered.length + ' call' + (filtered.length!==1?'s':'') + ' in last 30 days';
+    const mb = dashCalendarMonthBounds();
+    filtered = filtered.filter(function(c){
+      var ymd = dashParseCallDateYmd(c);
+      return ymd && ymd >= mb.start && ymd <= mb.end;
+    });
+    if(rangeLabel) rangeLabel.textContent = filtered.length + ' call' + (filtered.length!==1?'s':'') + ' this month';
   } else {
     if(rangeLabel) rangeLabel.textContent = filtered.length + ' total call' + (filtered.length!==1?'s':'');
   }
@@ -3950,18 +4090,7 @@ async function dashboardRefreshNow(){
     }
     const { data, error } = await sbClient.from('calls').select('*');
     if(error){ throw error; }
-    const calls = (data || []).map(c => ({
-      id: c.id ? c.id.toString() : c.id,
-      rep: c.rep,
-      biz: c.prospect || '',
-      outcome: c.outcome,
-      date: c.date || '',
-      time: c.time || '',
-      duration: c.duration || 0,
-      followup: c.followup || null,
-      notes: c.notes,
-      createdAt: c.createdat || c.createdAt
-    }));
+    const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
     ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
     renderDashboard();
     if(typeof _acInited !== 'undefined' && _acInited && typeof acApplyFilters === 'function'){
@@ -6044,22 +6173,11 @@ function launchApp(){
       }
     });
     sbClient.from('calls').select('*').then(({ data, error }) => {
-      if(!error && data) {
-        const calls = data.map(c => ({
-          id: c.id.toString(),
-          rep: c.rep,
-          biz: c.prospect || '',   // prospect is the actual DB column for business name
-          outcome: c.outcome,
-          date: c.date || '',
-          time: c.time || '',
-          duration: c.duration || 0,
-          followup: c.followup,
-          notes: c.notes,
-          createdAt: c.createdat || c.createdAt
-        }));
+      if(error){ console.error('calls load error:', error.message || error); return; }
+      if(data) {
+        const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
         ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
         console.log('✓ Loaded', calls.length, 'calls from cloud');
-        // Update dashboard stats now that calls are loaded
         if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
       }
     });
@@ -6123,7 +6241,7 @@ function launchApp(){
     const _sbWait = setInterval(()=>{
       _sbRetries++;
       if(sbReady && sbClient){ clearInterval(_sbWait); runCloudLoad(); }
-      else if(_sbRetries >= 20){ clearInterval(_sbWait); console.warn('⚠️ Supabase not ready after 2s — skipping cloud load'); }
+      else if(_sbRetries >= 50){ clearInterval(_sbWait); console.warn('⚠️ Supabase not ready after 5s — skipping cloud load'); }
     }, 100);
   }
   goPage('dashboard');
@@ -6140,18 +6258,7 @@ function launchApp(){
     sbClient.from('calls').select('*').then(function(res){
       const data = res.data; const error = res.error;
       if(error || !data) return;
-      const calls = data.map(function(c){ return {
-        id: c.id ? c.id.toString() : c.id,
-        rep: c.rep,
-        biz: c.prospect || '',
-        outcome: c.outcome,
-        date: c.date || '',
-        time: c.time || '',
-        duration: c.duration || 0,
-        followup: c.followup || null,
-        notes: c.notes,
-        createdAt: c.createdat || c.createdAt
-      };});
+      const calls = data.map(normalizeCloudCallRow).filter(Boolean);
       ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
       renderDashboard();
     });
@@ -7358,18 +7465,7 @@ function initAllCallsV2() {
         return;
       }
 
-      acAllData = (data || []).map(c => ({
-        id: c.id || String(c.created_at),
-        biz: c.prospect || 'Unknown',
-        phone: c.phone || '—',
-        date: c.date || (c.created_at ? c.created_at.split('T')[0] : ''),
-        time: c.time || '09:00',
-        duration: c.duration || 0,
-        outcome: c.outcome || 'No Answer',
-        rep: (typeof USERS !== 'undefined' && USERS[c.rep]) ? USERS[c.rep].name : (c.rep || 'Unknown'),
-        notes: c.notes || '',
-        ts: c.ts || (c.date ? new Date(c.date + 'T' + (c.time || '09:00')).getTime() : Date.now())
-      }));
+      acAllData = (data || []).map(mapCloudRowToAcRow).filter(Boolean);
 
       // Sort newest first
       acAllData.sort((a, b) => b.ts - a.ts);
@@ -7421,13 +7517,11 @@ function acGetDateBounds() {
   if (acDateRange === 'today') {
     return { from: today.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   } else if (acDateRange === 'week') {
-    const from = new Date(today);
-    const day = from.getDay(); // 0=Sun
-    from.setDate(from.getDate() - day + (day === 0 ? -6 : 1)); // Mon
-    return { from: from.toISOString().split('T')[0], to: '' };
+    const w = dashCalendarWeekBounds();
+    return { from: w.start, to: w.end };
   } else if (acDateRange === 'month') {
-    const from = new Date(today.getFullYear(), today.getMonth(), 1);
-    return { from: from.toISOString().split('T')[0], to: '' };
+    const m = dashCalendarMonthBounds();
+    return { from: m.start, to: m.end };
   } else if (acDateRange === 'custom') {
     return { from: acCustomFrom, to: acCustomTo };
   }
@@ -7447,7 +7541,7 @@ function acApplyFilters() {
     if (statusF && c.outcome !== statusF) return false;
     if (agentF && c.rep !== agentF) return false;
     if (search) {
-      const hay = (c.biz + c.phone + c.outcome + c.rep + (c.notes||'')).toLowerCase();
+      const hay = (String(c.biz||'') + String(c.phone||'') + String(c.outcome||'') + String(c.rep||'') + String(c.notes||'')).toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
@@ -7899,18 +7993,7 @@ function acStartAutoRefresh() {
       .then(({ data, error }) => {
         if (error || !data) return;
         const prevCount = acAllData.length;
-        acAllData = (data || []).map(c => ({
-          id: c.id || String(c.created_at),
-          biz: c.prospect || 'Unknown',
-          phone: c.phone || '—',
-          date: c.date || (c.created_at ? c.created_at.split('T')[0] : ''),
-          time: c.time || '09:00',
-          duration: c.duration || 0,
-          outcome: c.outcome || 'No Answer',
-          rep: (typeof USERS !== 'undefined' && USERS[c.rep]) ? USERS[c.rep].name : (c.rep || 'Unknown'),
-          notes: c.notes || '',
-          ts: c.ts || (c.date ? new Date(c.date + 'T' + (c.time || '09:00')).getTime() : Date.now())
-        }));
+        acAllData = (data || []).map(mapCloudRowToAcRow).filter(Boolean);
         acAllData.sort((a, b) => b.ts - a.ts);
         acLastUpdated = Date.now();
         acApplyFilters();

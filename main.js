@@ -3,6 +3,15 @@
   console.log("CONFIG:", window.APP_CONFIG);
   const client = window.APP_API.createClient();
 
+  if(SUPABASE_URL && SUPABASE_ANON_KEY){
+    window.SB_URL = SUPABASE_URL;
+    window.BASE_HDR = {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": "Bearer " + SUPABASE_ANON_KEY
+    };
+  }
+
   function showStartupConfigError(msg){
     console.error(msg);
     const target = document.getElementById('login-error');

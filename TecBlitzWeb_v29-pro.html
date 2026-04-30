@@ -3153,7 +3153,7 @@ async function _doFocusSync(){
   if(!currentUser) return;
   const cloudProspects = await loadFromCloud('prospects');
   if(cloudProspects && cloudProspects.length > 0){
-    ls('prospects', cloudProspects);
+    ls('prospects', cloudProspects.map(normalizeProspectFromCloud).filter(Boolean));
     console.log('✓ Auto-synced prospects on focus');
     const prospectsPage = document.getElementById('page-prospects');
     if(prospectsPage && prospectsPage.classList.contains('active')){
@@ -3541,19 +3541,13 @@ function renderProspects(){
   const grid = document.getElementById('prospect-grid');
   let ps = getProspects();
   const u = USERS[currentUser];
-  if(u.tier==='rep'){
-    ps = ps.filter(p=>p.assignedTo===currentUser);
-  } else if(u.tier==='coo' || (u.tier==='ceo' && u.role!=='CEO')){
-    const visibleReps = getVisibleRepUIDs();
-    ps = ps.filter(p=>visibleReps.includes(p.assignedTo) || p.assignedTo===currentUser);
-  }
-  // Primary CEO (role==='CEO') sees all — no filter
+  ps = ps.filter(p => prospectVisibleToUser(p, u));
   const q = (document.getElementById('prospect-search')||{}).value||'';
   const fa = (document.getElementById('prospect-filter-area')||{}).value||'';
   const ft = (document.getElementById('prospect-filter-type')||{}).value||'';
   const fAssign = (document.getElementById('prospect-filter-assign')||{}).value||'';
   const fPkg = (document.getElementById('prospect-filter-pkg')||{}).value||'';
-  if(q) ps = ps.filter(p=>p.name.toLowerCase().includes(q.toLowerCase())||p.area.toLowerCase().includes(q.toLowerCase()));
+  if(q) ps = ps.filter(p=>(p.name||'').toLowerCase().includes(q.toLowerCase())||(p.area||'').toLowerCase().includes(q.toLowerCase()));
   if(fa) ps = ps.filter(p=>p.area===fa);
   if(ft) ps = ps.filter(p=>p.type===ft);
   if(fAssign) ps = ps.filter(p=>p.assignedTo===fAssign);
@@ -3642,6 +3636,45 @@ function canonicalRepKey(rep){
     if(USERS[k].name && String(USERS[k].name).toLowerCase() === lower) return k;
   }
   return s;
+}
+function isProspectUnassigned(p){
+  if(!p) return true;
+  var a = p.assignedTo;
+  return a == null || String(a).trim() === '';
+}
+function normalizeProspectFromCloud(p){
+  if(!p) return null;
+  var raw = (p.assignedTo != null && String(p.assignedTo).trim() !== '') ? p.assignedTo
+    : ((p.assigned_to != null && String(p.assigned_to).trim() !== '') ? p.assigned_to
+    : ((p.assignee != null && String(p.assignee).trim() !== '') ? p.assignee : ''));
+  var assignedKey = String(raw || '').trim() ? canonicalRepKey(String(raw)) : '';
+  return {
+    id: String(p.id != null ? p.id : ''),
+    name: p.name || '',
+    type: p.type || '',
+    area: p.area || '',
+    phone: p.phone || '',
+    assignedTo: assignedKey,
+    pkg: p.pkg || '',
+    pain: p.pain || '',
+    script: p.script || '',
+    createdAt: p.createdAt || p.created_at || new Date().toISOString()
+  };
+}
+function prospectVisibleToUser(p, u){
+  if(!p || !u) return false;
+  if(isCEO(currentUser)) return true;
+  if(u.tier === 'rep'){
+    if(isProspectUnassigned(p)) return true;
+    return canonicalRepKey(p.assignedTo) === canonicalRepKey(currentUser) || p.assignedTo === currentUser;
+  }
+  if(u.tier === 'coo' || (u.tier === 'ceo' && u.role !== 'CEO')){
+    var vr = getVisibleRepUIDs();
+    if(isProspectUnassigned(p)) return true;
+    var ak = canonicalRepKey(p.assignedTo);
+    return vr.includes(p.assignedTo) || vr.includes(ak) || p.assignedTo === currentUser || ak === canonicalRepKey(currentUser);
+  }
+  return true;
 }
 function normalizeCloudCallRow(c){
   if(!c) return null;
@@ -3758,12 +3791,25 @@ function sendLoginEmailNotification(user){
   }
 }
 async function tryInsertLoginLog(user){
-  if(window._loginLogsTableMissing) return;
   try{
+    if(window._loginLogsTableMissing || !user) return;
+    if(window.APP_API && typeof window.APP_API.insertLoginLogSafe === 'function'){
+      var ua = navigator.userAgent || '';
+      var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
+      var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
+      await window.APP_API.insertLoginLogSafe({
+        username: user.name,
+        role: user.role,
+        login_time: new Date().toISOString(),
+        browser: browser,
+        device: device
+      });
+      return;
+    }
     if(!window.SB_URL || !window.BASE_HDR) return;
-    var ua = navigator.userAgent || '';
-    var browser = (ua.split(')')[0] || '').split('(').pop() || 'Unknown';
-    var device = /Mobi|Android/i.test(ua) ? 'Mobile' : 'Desktop';
+    var ua2 = navigator.userAgent || '';
+    var browser2 = (ua2.split(')')[0] || '').split('(').pop() || 'Unknown';
+    var device2 = /Mobi|Android/i.test(ua2) ? 'Mobile' : 'Desktop';
     var r = await fetch(window.SB_URL + '/rest/v1/login_logs', {
       method: 'POST',
       headers: window.BASE_HDR,
@@ -3771,22 +3817,17 @@ async function tryInsertLoginLog(user){
         username: user.name,
         role: user.role,
         login_time: new Date().toISOString(),
-        browser: browser,
-        device: device
+        browser: browser2,
+        device: device2
       }])
     });
-    if(r.status === 404 || r.status === 406){
-      window._loginLogsTableMissing = true;
-      console.info('login_logs table missing; skipping future login_logs writes.');
-      return;
-    }
-    if(!r.ok){
+    if(r.status === 404 || r.status === 406) window._loginLogsTableMissing = true;
+    else if(!r.ok){
       var txt = await r.text().catch(function(){ return ''; });
-      if(r.status === 400 || /relation|does not exist|not find/i.test(txt)) window._loginLogsTableMissing = true;
-      console.warn('login_logs insert:', r.status, (txt || '').slice(0, 200));
+      if(r.status === 400 || /relation|does not exist|not find/i.test(txt || '')) window._loginLogsTableMissing = true;
     }
-  }catch(e){
-    console.warn('login_logs insert failed:', e);
+  }catch(_e){
+    /* login_logs optional — never break login */
   }
 }
 async function loadDashboard(){
@@ -4039,9 +4080,7 @@ function renderDashboard(){
   const fueDue = myCalls.filter(c=>c.followup && c.followup>=today && c.followup<=new Date(Date.now()+7*86400000).toISOString().split('T')[0]);
 
   const allProspects = getProspects();
-  let myProspects = allProspects;
-  if(u.tier==='rep') myProspects = allProspects.filter(p=>p.assignedTo===currentUser);
-  else if(u.tier==='coo'||(u.tier==='ceo'&&u.role!=='CEO')) myProspects = allProspects.filter(p=>visibleReps.includes(p.assignedTo) || p.assignedTo===currentUser);
+  let myProspects = allProspects.filter(p => prospectVisibleToUser(p, u));
 
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-label">Calls Today</div><div class="stat-num">${todayCalls.length}</div><div class="stat-sub">as of ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
@@ -6156,18 +6195,7 @@ function launchApp(){
     if(!sbReady || !sbClient) return;
     sbClient.from('prospects').select('*').then(({ data, error }) => {
       if(!error && data) {
-        const prospects = data.map(p => ({
-          id: p.id.toString(),
-          name: p.name,
-          type: p.type,
-          area: p.area,
-          phone: p.phone,
-          assignedTo: p.assignedTo,
-          pkg: p.pkg,
-          pain: p.pain,
-          script: p.script,
-          createdAt: p.createdAt
-        }));
+        const prospects = data.map(normalizeProspectFromCloud).filter(Boolean);
         ls('prospects', prospects);
         console.log('✓ Loaded', prospects.length, 'prospects from cloud');
       }

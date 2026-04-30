@@ -5,51 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TecBlitzWeb Sales OS</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// Tiny Supabase REST client - no SDK needed
-(function(){
-  const SB_URL = 'https://fuahuebzjvnpdvkxakgj.supabase.co';
-  const SB_KEY = 'sb_publishable_dDHINeYjE0p7Gnt6tOMr0w_jsNp2ftf';
-  const BASE_HDR = { 'Content-Type':'application/json', 'apikey': SB_KEY, 'Authorization':'Bearer '+SB_KEY };
-  const UPSERT_HDR = Object.assign({}, BASE_HDR, { 'Prefer':'resolution=merge-duplicates,return=minimal' });
-  const DEL_HDR   = Object.assign({}, BASE_HDR, { 'Prefer':'return=minimal' });
-  // Expose globally so launchApp and other functions outside this IIFE can access them
-  window.SB_URL   = SB_URL;
-  window.SB_KEY   = SB_KEY;
-  window.BASE_HDR = BASE_HDR;
-  window.supabase = {
-    createClient: function(){ return window.supabase; },
-    from: function(table){
-      const base = SB_URL + '/rest/v1/' + table;
-      return {
-        select: function(cols){
-          return fetch(base + '?select=' + (cols||'*'), { headers: BASE_HDR })
-            .then(r => r.json().then(data => r.ok ? {data, error:null} : {data:null, error:data}));
-        },
-        upsert: function(rows){
-          const body = Array.isArray(rows) ? rows : [rows];
-          return fetch(base, { method:'POST', headers: UPSERT_HDR, body: JSON.stringify(body) })
-            .then(r => r.status === 204 || r.status === 201 ? {data:null, error:null}
-              : r.json().then(d => r.ok ? {data:d, error:null} : {data:null, error:d}));
-        },
-        insert: function(rows){
-          return this.upsert(rows);
-        },
-        delete: function(id){
-          return fetch(base + '?id=eq.' + encodeURIComponent(id), { method:'DELETE', headers: DEL_HDR })
-            .then(r => {
-              if(r.status === 204 || r.status === 200) return {data:null, error:null};
-              return r.text().then(t => {
-                try { return {data:null, error:JSON.parse(t)}; }
-                catch(e) { return {data:null, error:{message:t||'Delete failed (status '+r.status+')'}}; }
-              });
-            });
-        }
-      };
-    }
-  };
-})();
+  emailjs.init("8B97-7r8HNS8tQN9Q");
 </script>
+<script src="./config.js"></script>
+<script src="./api.js"></script>
+<script src="./main.js"></script>
 <style>
   :root {
     --purple: #A855F7;
@@ -1529,6 +1491,137 @@
     #ac-table tbody tr td:nth-child(4) { display: none !important; } /* also hide date on tiny */
     .ac-stat-num { font-size: 20px !important; }
   }
+
+  /* ── 2026 UI ENHANCEMENT LAYER (UI-only) ── */
+  body {
+    background:
+      radial-gradient(1200px 700px at -10% -20%, rgba(124,58,237,0.22), transparent 60%),
+      radial-gradient(900px 600px at 110% 0%, rgba(14,165,233,0.18), transparent 60%),
+      linear-gradient(135deg, #05070f 0%, #090f1f 35%, #0b1226 100%);
+    transition: background .45s ease, color .45s ease;
+  }
+  body.light {
+    background:
+      radial-gradient(1000px 650px at -10% -10%, rgba(147,51,234,0.12), transparent 60%),
+      radial-gradient(900px 600px at 120% 0%, rgba(14,165,233,0.10), transparent 60%),
+      linear-gradient(135deg, #f5f8ff 0%, #eef2ff 50%, #f7fbff 100%);
+  }
+
+  .page {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .34s ease, transform .34s ease;
+  }
+  .page.active {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .login-card {
+    animation: loginCardIn .7s cubic-bezier(.2,.9,.2,1) .08s both;
+  }
+  @keyframes loginCardIn {
+    from { opacity: 0; transform: translateY(22px) scale(.96); filter: blur(1px); }
+    to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+
+  .btn-primary, .btn, .tm-edit-btn, .nav-item, .stat-card, .card {
+    transition: transform .25s ease, box-shadow .25s ease, background-color .25s ease, border-color .25s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 12px 40px rgba(124,58,237,.38), 0 2px 10px rgba(14,165,233,.18);
+  }
+  .ui-tap {
+    transform: scale(.97) !important;
+  }
+
+  .stat-card:hover, .card:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow: 0 12px 36px rgba(0,0,0,.32), 0 0 0 1px rgba(124,58,237,.28), 0 0 28px rgba(14,165,233,.16);
+  }
+
+  .ui-theme-fab {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 1200;
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(124,58,237,.28), rgba(14,165,233,.22));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    color: var(--text);
+    font-size: 18px;
+    box-shadow: 0 8px 28px rgba(0,0,0,.35), 0 0 18px rgba(124,58,237,.24);
+  }
+
+  .cmd-bar {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 18px;
+    z-index: 1200;
+    width: min(740px, calc(100vw - 24px));
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: rgba(8,12,26,.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 16px 44px rgba(0,0,0,.42), 0 0 26px rgba(124,58,237,.22);
+  }
+  .cmd-bar.open { display: flex; animation: cmdIn .2s ease; }
+  @keyframes cmdIn { from { opacity:0; transform:translateX(-50%) translateY(8px);} to {opacity:1; transform:translateX(-50%) translateY(0);} }
+  .cmd-bar input {
+    width: 100%;
+    border: 1px solid rgba(124,58,237,.35);
+    border-radius: 12px;
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    padding: 11px 12px;
+    outline: none;
+  }
+  .cmd-bar input:focus {
+    border-color: rgba(124,58,237,.75);
+    box-shadow: 0 0 0 3px rgba(124,58,237,.16), 0 0 20px rgba(124,58,237,.25);
+  }
+
+  .cursor-dot, .cursor-ring {
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 2000;
+    border-radius: 50%;
+    opacity: 0;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-dot {
+    width: 8px; height: 8px;
+    background: #a78bfa;
+    box-shadow: 0 0 14px rgba(167,139,250,.8);
+  }
+  .cursor-ring {
+    width: 36px; height: 36px;
+    border: 1px solid rgba(167,139,250,.58);
+    box-shadow: 0 0 24px rgba(14,165,233,.28), inset 0 0 20px rgba(124,58,237,.22);
+    transition: width .18s ease, height .18s ease, border-color .18s ease;
+  }
+  .cursor-ring.active {
+    width: 52px; height: 52px;
+    border-color: rgba(34,211,238,.86);
+  }
+
+  @media (max-width: 767px), (pointer: coarse) {
+    .ui-theme-fab { width: 52px; height: 52px; right: 12px; bottom: 12px; }
+    .cmd-bar { bottom: 76px; }
+    .cursor-dot, .cursor-ring { display: none !important; }
+    .btn, .btn-primary, .tm-edit-btn { min-height: 44px; }
+  }
 </style>
 
 </head>
@@ -1543,58 +1636,20 @@
         <span>Tec<b>Blitz</b>Web</span>
       </div>
       <h1>Sales OS</h1>
-      <p id="login-subtitle">Select your profile and enter your PIN</p>
+      <p id="login-subtitle">Enter your email and password</p>
       <div class="form-group">
-        <label>Who are you?</label>
-        <select id="user-select">
-          <option value="">— Select user —</option>
-          <option value="2525">Bisara</option>
-          <option value="4141">Avishka</option>
-          <option value="3636">Dinu Dilitha</option>
-          <option value="5757">Dulaj</option>
-          <option value="8585">Ramesh</option>
-          <option value="4545">Arindi</option>
-          <option value="6868">Fasith</option>
-          <option value="1212">Shehan</option>
-          <option value="4343">Mihini</option>
-          <option value="2626">Chamindu</option>
-          <option value="7878">SalesR01</option>
-          <option value="8787">SalesR02</option>
-          <option value="9898">SalesR03</option>
-          <option value="5252">SalesR04</option>
-          <option value="0909">SalesR05</option>
-          <option value="6262">SalesR06</option>
-          <option value="7373">SalesR07</option>
-          <option value="3232">SalesR08</option>
-        </select>
+        <label>Email</label>
+        <input type="email" id="emailInput" placeholder="name@tecblitzweb.com" autocomplete="username">
       </div>
-      <div id="pin-area" style="display:none;">
-        <div class="form-group" style="margin-bottom:4px;">
-          <label id="pin-label">Enter PIN</label>
-          <div class="pin-dots" id="pin-dots">
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-          </div>
+      <div class="form-group">
+        <label>Password</label>
+        <div style="position:relative;">
+          <input type="password" id="passwordInput" placeholder="Enter password" autocomplete="current-password" style="padding-right:42px;">
+          <button type="button" onclick="togglePasswordVisibility()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-2);font-size:16px;cursor:pointer;">👁</button>
         </div>
-        <div class="pin-grid">
-          <button class="pin-btn" onclick="pinPress('1')">1</button>
-          <button class="pin-btn" onclick="pinPress('2')">2</button>
-          <button class="pin-btn" onclick="pinPress('3')">3</button>
-          <button class="pin-btn" onclick="pinPress('4')">4</button>
-          <button class="pin-btn" onclick="pinPress('5')">5</button>
-          <button class="pin-btn" onclick="pinPress('6')">6</button>
-          <button class="pin-btn" onclick="pinPress('7')">7</button>
-          <button class="pin-btn" onclick="pinPress('8')">8</button>
-          <button class="pin-btn" onclick="pinPress('9')">9</button>
-          <button class="pin-btn" onclick="pinPress('0')">0</button>
-          <button class="pin-btn del" onclick="pinDel()">⌫</button>
-          <button class="pin-btn" onclick="pinPress('C')" style="font-size:13px;color:var(--text-2);">CLR</button>
-        </div>
-        <div class="login-error" id="login-error"></div>
-        <button class="btn-primary" id="login-btn" onclick="doLogin()" disabled>Login</button>
       </div>
+      <div class="login-error" id="login-error"></div>
+      <button class="btn-primary" id="login-btn" onclick="doLogin()">Login</button>
     </div>
   </div>
   <div class="login-right">
@@ -1712,7 +1767,10 @@
             <h2>Dashboard</h2>
             <p id="dash-date"></p>
           </div>
-          <button class="btn btn-purple" onclick="openModal('call-modal')" style="flex-shrink:0;">+ Log Call</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-outline" onclick="dashboardRefreshNow()" id="dash-refresh-btn" style="flex-shrink:0;">Refresh Now</button>
+            <button class="btn btn-purple" onclick="openModal('call-modal')" style="flex-shrink:0;">+ Log Call</button>
+          </div>
         </div>
         <div class="stat-grid" id="dash-stats"></div>
         <div class="two-col">
@@ -2759,25 +2817,35 @@
 // DATA LAYER
 // ════════════════════════════════════════
 const USERS = {
-  bisara:   { name:'Bisara', role:'CEO',  tier:'ceo', pin:'2525', handle:'@bisara' },
-  avishka:  { name:'Avishka', role:'Co-CEO', tier:'ceo', pin:'4141', handle:'@avishka' },
-  dilitha:  { name:'Dinu Dilitha', role:'COO', tier:'coo', pin:'3636', handle:'@dilitha' },
-  dulaj:    { name:'Dulaj', role:'COO', tier:'coo', pin:'5757', handle:'@dulaj' },
-  ramesh:   { name:'Ramesh', role:'COO', tier:'coo', pin:'8585', handle:'@ramesh' },
-  arindi:   { name:'Arindi', role:'Sales Rep', tier:'rep', pin:'4545', handle:'@arindi' },
-  fasith:   { name:'Fasith', role:'Sales Rep', tier:'rep', pin:'6868', handle:'@fasith' },
-  shehan:   { name:'Shehan', role:'Sales Rep', tier:'rep', pin:'1212', handle:'@shehan' },
-  mihini:   { name:'Mihini', role:'Sales Rep', tier:'rep', pin:'4343', handle:'@mihini' },
-  chamindu: { name:'Chamindu', role:'Sales Rep', tier:'rep', pin:'2626', handle:'@chamindu' },
-  salesr01: { name:'SalesR01', role:'Sales Rep', tier:'rep', pin:'7878', handle:'@salesr01' },
-  salesr02: { name:'SalesR02', role:'Sales Rep', tier:'rep', pin:'8787', handle:'@salesr02' },
-  salesr03: { name:'SalesR03', role:'Sales Rep', tier:'rep', pin:'9898', handle:'@salesr03' },
-  salesr04: { name:'SalesR04', role:'Sales Rep', tier:'rep', pin:'5252', handle:'@salesr04' },
-  salesr05: { name:'SalesR05', role:'Sales Rep', tier:'rep', pin:'0909', handle:'@salesr05' },
-  salesr06: { name:'SalesR06', role:'Sales Rep', tier:'rep', pin:'6262', handle:'@salesr06' },
-  salesr07: { name:'SalesR07', role:'Sales Rep', tier:'rep', pin:'7373', handle:'@salesr07' },
-  salesr08: { name:'SalesR08', role:'Sales Rep', tier:'rep', pin:'3232', handle:'@salesr08' },
+  "Bisara":   { pin:"2525", role:"CEO",    email:"bisara@tecblitzweb.com" },
+  "Avishka":  { pin:"4141", role:"Co-CEO", email:"avishka@tecblitzweb.com" },
+  "Dilitha":  { pin:"3636", role:"COO",    email:"dilitha@tecblitzweb.com" },
+  "Dulaj":    { pin:"5757", role:"COO",    email:"dulaj@tecblitzweb.com" },
+  "Ramesh":   { pin:"8585", role:"COO",    email:"ramesh@tecblitzweb.com" },
+  "Fasith":   { pin:"6868", role:"Rep",    email:"fasith@tecblitzweb.com" },
+  "Shehan":   { pin:"1212", role:"Rep",    email:"shehan@tecblitzweb.com" },
+  "Chamindu": { pin:"2626", role:"Rep",    email:"chamindu@tecblitzweb.com" },
+  "SalesR01": { pin:"7878", role:"Sales",  email:"salesr01@tecblitzweb.com" },
+  "SalesR02": { pin:"8787", role:"Sales",  email:"salesr02@tecblitzweb.com" },
+  "SalesR03": { pin:"9898", role:"Sales",  email:"salesr03@tecblitzweb.com" },
+  "SalesR04": { pin:"5252", role:"Sales",  email:"salesr04@tecblitzweb.com" },
+  "SalesR05": { pin:"0909", role:"Sales",  email:"salesr05@tecblitzweb.com" },
+  "SalesR06": { pin:"6262", role:"Sales",  email:"salesr06@tecblitzweb.com" },
+  "SalesR07": { pin:"7373", role:"Sales",  email:"salesr07@tecblitzweb.com" },
+  "SalesR08": { pin:"3232", role:"Sales",  email:"salesr08@tecblitzweb.com" },
+  "SalesR09": { pin:"6868", role:"Sales",  email:"salesr09@tecblitzweb.com" },
+  "SalesR10": { pin:"9191", role:"Sales",  email:"salesr10@tecblitzweb.com" },
+  "SalesR11": { pin:"3838", role:"Sales",  email:"salesr11@tecblitzweb.com" },
+  "SalesR12": { pin:"7373", role:"Sales",  email:"salesr12@tecblitzweb.com" }
 };
+
+Object.entries(USERS).forEach(([k, v]) => {
+  v.name = k;
+  v.handle = '@' + String(k).toLowerCase();
+  if(v.role === 'CEO' || v.role === 'Co-CEO') v.tier = 'ceo';
+  else if(v.role === 'COO') v.tier = 'coo';
+  else v.tier = 'rep';
+});
 
 // Helper: display label for dropdowns — "Name (@handle)"
 function userLabel(uid){ const u=USERS[uid]; if(!u) return uid; return u.handle ? `${u.name} (${u.handle})` : u.name; }
@@ -2808,8 +2876,7 @@ function getRepCOO(repUid){
 // Visible reps for current user
 function getVisibleRepUIDs(){
   const u = USERS[currentUser];
-  if(u?.tier==='ceo' && u?.role==='CEO') return Object.keys(USERS).filter(k=>USERS[k].tier==='rep'); // primary CEO only
-  if(isCOO(currentUser) || (u?.tier==='ceo' && u?.role!=='CEO')) return getCOORepUIDs(currentUser); // COO and Co-CEO
+  // CEO, Co-CEO, COO and management can monitor all sales reps.
   if(isMgmt(currentUser)) return Object.keys(USERS).filter(k=>USERS[k].tier==='rep');
   return [currentUser];
 }
@@ -2939,7 +3006,6 @@ let currentUser = null;
 let pinBuffer = '';
 let pinConfirmBuffer = '';
 let settingPin = false;
-
 // ════════════════════════════════════════
 // SUPABASE CLOUD-FIRST DATA LAYER
 // ════════════════════════════════════════
@@ -3058,7 +3124,7 @@ async function loadFromCloud(table){
   if(!sbReady || !sbClient) return null;
   if(window._closedDealsTableMissing && table === 'closed_deals') return null;
   try {
-    const HDR = { 'Content-Type':'application/json', 'apikey': window.SB_KEY, 'Authorization':'Bearer '+window.SB_KEY };
+    const HDR = window.BASE_HDR;
     const r = await fetch(window.SB_URL + '/rest/v1/' + table + '?select=*', { headers: HDR });
     if(r.status === 404 || r.status === 400){
       if(table === 'closed_deals') window._closedDealsTableMissing = true;
@@ -3190,139 +3256,101 @@ async function hashPIN(pin){
 // ════════════════════════════════════════
 // PIN AUTH
 // ════════════════════════════════════════
-document.getElementById('user-select').onchange = function(){
-  const uid = this.value;
-  if(!uid){ document.getElementById('pin-area').style.display='none'; return; }
-  document.getElementById('pin-area').style.display='block';
-  pinBuffer = '';
-  settingPin = false;
-  const pins = getData('pins',{});
-  if(!pins[uid]){
-    document.getElementById('pin-label').textContent = 'Set a new PIN (4 digits)';
-    document.getElementById('login-subtitle').textContent = 'First time? Set your 4-digit PIN.';
-    settingPin = true;
-  } else {
-    document.getElementById('pin-label').textContent = 'Enter PIN';
-    document.getElementById('login-subtitle').textContent = 'Welcome back. Enter your PIN to continue.';
-  }
-  updateDots();
-};
-
-function pinPress(d){
-  if(pinBuffer.length>=4) return;
-  pinBuffer += d;
-  updateDots();
-  if(pinBuffer.length===4){
-    document.getElementById('login-btn').disabled = false;
-  }
+function showError(msg){
+  const el = document.getElementById('login-error');
+  el.style.color = 'var(--red)';
+  el.textContent = msg;
 }
-function pinDel(){
-  pinBuffer = pinBuffer.slice(0,-1);
-  document.getElementById('login-btn').disabled = true;
-  updateDots();
+function setLoading(isLoading){
+  const btn = document.getElementById('login-btn');
+  if(!btn) return;
+  btn.disabled = !!isLoading;
+  btn.innerHTML = isLoading ? '<span class="spinner"></span> Logging in...' : 'Login';
 }
-function updateDots(){
-  const dots = document.querySelectorAll('.pin-dot');
-  dots.forEach((d,i)=>{ d.classList.toggle('filled', i<pinBuffer.length); });
+function togglePasswordVisibility(){
+  const input = document.getElementById('passwordInput');
+  if(!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
 }
 async function doLogin(){
-  const selectedPin = document.getElementById('user-select').value;
-  if(!selectedPin) return;
+  const email = document.getElementById('emailInput').value.trim();
+  const password = document.getElementById('passwordInput').value;
   
-  const PIN_MAP = {
-    '2525': 'bisara',
-    '4141': 'avishka',
-    '3636': 'dilitha',
-    '5757': 'dulaj',
-    '8585': 'ramesh',
-    '4545': 'arindi',
-    '6868': 'fasith',
-    '1212': 'shehan',
-    '4343': 'mihini',
-    '2626': 'chamindu',
-    '7878': 'salesr01',
-    '8787': 'salesr02',
-    '9898': 'salesr03',
-    '5252': 'salesr04',
-    '0909': 'salesr05',
-    '6262': 'salesr06',
-    '7373': 'salesr07',
-    '3232': 'salesr08'
-  };
-
-  const uid = PIN_MAP[selectedPin] || null;
-
-  // Custom-user PINs (tm_extra_reps) use uid directly as key in PIN_MAP slot
-  // For dynamically added users, uid IS their user-select value
-  const effectiveUid = uid || selectedPin;
-
-  if(!USERS[effectiveUid]) {
-    document.getElementById('login-error').textContent = 'User not found';
+  if (!email || !password) {
+    showError("Please enter email and password");
     return;
   }
-
-  const pins = getData('pins',{});
-  const storedPin = pins[effectiveUid];
-
-  if(settingPin){
-    // First time — hash and store the PIN
-    const hashed = await hashPIN(pinBuffer);
-    const newPins = getData('pins',{});
-    newPins[effectiveUid] = { hash: hashed, v: 1 };
-    ls('pins', newPins);
-    currentUser = effectiveUid;
-    launchApp();
-    return;
-  }
-
-  if(!storedPin){
-    document.getElementById('login-error').textContent = 'No PIN set for this user. Select your name and set a PIN.';
-    pinBuffer = '';
-    updateDots();
-    document.getElementById('login-btn').disabled = true;
-    return;
-  }
-
-  // Support both legacy plaintext PINs and new hashed PINs
-  let pinOk = false;
-  if(typeof storedPin === 'object' && storedPin.hash){
-    // Hashed PIN — compare hash
-    const inputHash = await hashPIN(pinBuffer);
-    pinOk = (inputHash === storedPin.hash);
-  } else {
-    // Legacy plaintext PIN — compare directly, then migrate to hash
-    pinOk = (pinBuffer === String(storedPin));
-    if(pinOk){
-      // Migrate to hashed on successful login
-      const hashed = await hashPIN(pinBuffer);
-      const newPins = getData('pins',{});
-      newPins[effectiveUid] = { hash: hashed, v: 1 };
-      ls('pins', newPins);
-      console.log('✓ PIN migrated to hash for', effectiveUid);
+  
+  // Show loading
+  setLoading(true);
+  try{
+    // Check against Supabase sales_users table
+  const res = await fetch(window.SB_URL + '/rest/v1/sales_users' +
+      '?email=eq.' + encodeURIComponent(email) +
+      '&password=eq.' + encodeURIComponent(password) +
+      '&select=name,email,role', {
+      headers: BASE_HDR
+    });
+    
+    const users = await res.json();
+    
+    if (!users || users.length === 0) {
+      setLoading(false);
+      showError("Invalid email or password");
+      return;
     }
-  }
 
-  if(!pinOk){
-    document.getElementById('login-error').textContent = 'Incorrect PIN. Try again.';
-    pinBuffer = '';
-    updateDots();
-    document.getElementById('login-btn').disabled = true;
-    return;
-  }
+    const user = users[0];
+    currentUser = user.name;
   
-  currentUser = effectiveUid;
-  launchApp();
+    // Send EmailJS login alert
+    emailjs.send("service_fd17s6b", "ql5vgau", {
+      username:   user.name,
+      role:       user.role,
+      to_email:   user.email,
+      login_time: new Date().toLocaleTimeString(),
+      login_date: new Date().toLocaleDateString(),
+      browser:    navigator.userAgent.split(')')[0].split('(')[1] || 'Unknown',
+      device:     /Mobi|Android/i.test(navigator.userAgent) 
+                  ? 'Mobile' : 'Desktop'
+    }).then(() => {
+      console.log("Login email sent!");
+    }).catch((err) => {
+      console.warn("Email log failed:", err);
+    });
+
+    // Also log to login_logs table
+    fetch(window.SB_URL + '/rest/v1/login_logs', {
+      method: 'POST',
+      headers: BASE_HDR,
+      body: JSON.stringify([{
+        username: user.name,
+        role: user.role,
+        login_time: new Date().toISOString(),
+        browser: navigator.userAgent.split(')')[0].split('(')[1] || 'Unknown',
+        device: /Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'
+      }])
+    }).catch(err => console.warn('login_logs insert failed:', err));
+
+    // Proceed with login
+    setLoading(false);
+    launchApp(user.name, user.role);
+  } catch(e){
+    setLoading(false);
+    showError('Login failed. Please try again.');
+    console.error('Login request failed:', e);
+  }
 }
 function doLogout(){
   currentUser = null;
-  pinBuffer = '';
-  document.getElementById('user-select').value='';
-  document.getElementById('pin-area').style.display='none';
+  const emailInput = document.getElementById('emailInput');
+  const passwordInput = document.getElementById('passwordInput');
+  if(emailInput) emailInput.value = '';
+  if(passwordInput) passwordInput.value = '';
   document.getElementById('login-error').textContent='';
-  document.getElementById('login-btn').disabled=true;
+  setLoading(false);
   document.getElementById('app').style.display='none';
   document.getElementById('login-screen').style.display='flex';
-  updateDots();
 }
 
 // ════════════════════════════════════════
@@ -3891,6 +3919,43 @@ function renderDashboard(){
   renderDashRecentCalls();
 }
 
+async function dashboardRefreshNow(){
+  const btn = document.getElementById('dash-refresh-btn');
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Refreshing...'; }
+  try{
+    if(!sbReady || !sbClient){
+      showToast('Cloud sync not ready yet','error');
+      return;
+    }
+    const { data, error } = await sbClient.from('calls').select('*');
+    if(error){ throw error; }
+    const calls = (data || []).map(c => ({
+      id: c.id ? c.id.toString() : c.id,
+      rep: c.rep,
+      biz: c.prospect || '',
+      outcome: c.outcome,
+      date: c.date || '',
+      time: c.time || '',
+      duration: c.duration || 0,
+      followup: c.followup || null,
+      notes: c.notes,
+      createdAt: c.createdat || c.createdAt
+    }));
+    ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
+    renderDashboard();
+    if(typeof _acInited !== 'undefined' && _acInited && typeof acApplyFilters === 'function'){
+      acApplyFilters();
+    }
+    showToast('Dashboard refreshed from cloud','success');
+  } catch(e){
+    console.error('❌ Dashboard refresh failed:', e?.message || e);
+    showToast('Refresh failed. Check console.','error');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = oldText || 'Refresh Now'; }
+  }
+}
+
 // ════════════════════════════════════════
 // FOLLOW-UPS PAGE
 // ════════════════════════════════════════
@@ -4116,7 +4181,7 @@ function saveClosedDealsCloud(closed){
     // Upsert closed_deals — table not yet created in Supabase, skip to avoid 404
     // When the table is created, remove the _closedDealsTableMissing flag here
     if(!window._closedDealsTableMissing){
-      fetch(window.SB_URL+'/rest/v1/closed_deals',{method:'POST',headers:{'Content-Type':'application/json','apikey':window.SB_KEY,'Authorization':'Bearer '+window.SB_KEY,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(formatted)})
+      fetch(window.SB_URL+'/rest/v1/closed_deals',{method:'POST',headers:Object.assign({}, window.BASE_HDR, {'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(formatted)})
         .then(r=>{ if(r.status===404||r.status===400){ window._closedDealsTableMissing=true; return; } if(r.ok) console.log('✓ closed_deals synced to cloud'); else r.json().then(d=>console.warn('⚠️ closed_deals sync issue:',d?.message)); })
         .catch(e=>{ window._closedDealsTableMissing=true; });
     }
@@ -7171,9 +7236,9 @@ function acGetAllAgentNames() {
     const names = Object.values(USERS).map(u => u.name).filter(Boolean);
     if(names.length) return names;
   }
-  return ['Avishka','Dilitha','Dulaj','Ramesh','Arindi','Fasith','Shehan','Mihini','Chamindu'];
+  return ['Avishka','Dilitha','Dulaj','Ramesh','Fasith','Shehan','Chamindu','SalesR09','SalesR10','SalesR11','SalesR12'];
 }
-const AC_AGENTS = ['Avishka','Dilitha','Dulaj','Ramesh','Arindi','Fasith','Shehan','Mihini','Chamindu'];
+const AC_AGENTS = ['Avishka','Dilitha','Dulaj','Ramesh','Fasith','Shehan','Chamindu','SalesR09','SalesR10','SalesR11','SalesR12'];
 const AC_STATUSES = ['Interested','Not Interested','Follow-up','No Answer','Busy'];
 const AC_BUSINESSES = [
   'Silva Auto Parts','Perera Car Sales','Colombo Motors','Nihal Workshop',

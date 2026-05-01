@@ -4282,7 +4282,7 @@
         const HDR = window.BASE_HDR;
         if(!window.SB_URL || !HDR) return null;
         let _url = window.SB_URL + '/rest/v1/' + table + '?select=*';
-        if(table === 'calls' && currentUser){ _url += '&rep=eq.' + encodeURIComponent(currentUser); }
+        if(table === 'calls' && currentUser){ _url += '&rep=eq.' + encodeURIComponent(currentUser.toLowerCase()); }
         const r = await fetch(_url, { headers: HDR });
         if(r.status === 404 || r.status === 400){
         if(table === 'closed_deals') window._closedDealsTableMissing = true;
@@ -4875,7 +4875,7 @@
     }
     return {
         id: id,
-        rep: canonicalRepKey(c.rep || ''),
+        rep: String(canonicalRepKey(c.rep || '') || '').toLowerCase(),
         biz: (c.prospect != null && String(c.prospect).trim() !== '') ? String(c.prospect) : ((c.biz != null && String(c.biz).trim() !== '') ? String(c.biz) : ''),
         outcome: c.outcome || 'No Answer',
         date: dateYmd,
@@ -4954,7 +4954,7 @@
     async function loadDashboard(){
     try{
         if(sbReady && sbClient){
-        var res = await sbClient.from('calls').select('*').eq('rep', currentUser);
+        var res = await sbClient.from('calls').select('*').eq('rep', currentUser.toLowerCase());
         var data = res && res.data;
         var err = res && res.error;
         if(!err && Array.isArray(data)){
@@ -4974,6 +4974,18 @@
     if(typeof renderDashboard === 'function') renderDashboard();
     }
     function getCalls(){ return getData('calls',[]); }
+    function callRepMatchesUid(cRep, uid){
+    return String(cRep||'').toLowerCase() === String(uid||'').toLowerCase();
+    }
+    function callRepVisibleToUids(cRep, visibleUids){
+    return visibleUids.some(function(uid){ return callRepMatchesUid(cRep, uid); });
+    }
+    function userKeyForCallRep(rep){
+    var r = String(rep||'').toLowerCase();
+    if(!r) return rep;
+    var k = Object.keys(USERS).find(function(x){ return String(x).toLowerCase() === r; });
+    return k != null ? k : rep;
+    }
     function saveCall(){
     const id = document.getElementById('call-edit-id').value;
     const biz = document.getElementById('c-biz').value.trim();
@@ -5013,7 +5025,7 @@
         : now.toISOString();
     const obj = {
         id: id||Date.now().toString(),
-        rep: currentUser,
+        rep: currentUser.toLowerCase(),
         biz: biz,
         phone: document.getElementById('c-phone').value.trim(),
         bizType: document.getElementById('c-biztype').value,
@@ -5075,7 +5087,7 @@
     // Refresh All Calls live data if page is active
     const allCallsPage = document.getElementById('page-allcalls');
     if (allCallsPage && allCallsPage.classList.contains('active') && _acInited) {
-        window.supabase.from('calls').select('*').eq('rep', currentUser).then(({ data, error }) => {
+        window.supabase.from('calls').select('*').eq('rep', currentUser.toLowerCase()).then(({ data, error }) => {
         if (!error && data) {
             acAllData = data.map(mapCloudRowToAcRow).filter(Boolean);
             acAllData.sort((a, b) => b.ts - a.ts);
@@ -5098,7 +5110,7 @@
 
     // Force re-fetch from Supabase after save so dashboard shows latest
     if(sbReady && sbClient){
-        sbClient.from('calls').select('*').eq('rep', currentUser).then(function(res){
+        sbClient.from('calls').select('*').eq('rep', currentUser.toLowerCase()).then(function(res){
             if(res.error || !res.data) return;
             const fresh = (res.data || []).map(normalizeCloudCallRow).filter(Boolean);
             ls('calls', mergeByIdPreserveLocal(fresh, getCalls()));
@@ -5122,7 +5134,7 @@
         const calls = getCalls();
         const target = calls.find(c => c.id === id);
         if(!target){ showToast('Call not found','error'); return; }
-        if(target.rep !== currentUser && !isMgmt(currentUser)){
+        if(!callRepMatchesUid(target.rep, currentUser) && !isMgmt(currentUser)){
         showToast('You can only delete your own call logs','error');
         return;
         }
@@ -5146,7 +5158,7 @@
 
     function renderMyCalls(){
     const tbody = document.getElementById('calls-tbody');
-    let calls = getCalls().filter(c=>c.rep===currentUser);
+    let calls = getCalls().filter(c=>callRepMatchesUid(c.rep, currentUser));
     const q = (document.getElementById('calls-search')||{}).value||'';
     const f = (document.getElementById('calls-filter')||{}).value||'';
     if(q) calls = calls.filter(c=>(c.biz||'').toLowerCase().includes(q.toLowerCase())||((c.notes||'').toLowerCase().includes(q.toLowerCase())));
@@ -5190,8 +5202,8 @@
     const allCalls = getCalls();
     const visibleReps = getVisibleRepUIDs();
     let myCalls;
-    if(u.tier==='rep') myCalls = allCalls.filter(c=>c.rep===currentUser);
-    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>visibleReps.includes(c.rep));
+    if(u.tier==='rep') myCalls = allCalls.filter(c=>callRepMatchesUid(c.rep, currentUser));
+    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>callRepVisibleToUids(c.rep, visibleReps));
     else myCalls = allCalls;
 
     // Filter by range
@@ -5237,7 +5249,7 @@
         <tbody>${filtered.map(c=>`<tr>
         <td style="white-space:nowrap;">${fmt(c.date||'')}</td>
         <td style="white-space:nowrap;color:var(--text-2);">${c.time||'—'}</td>
-        ${showRep?`<td style="color:var(--text-2);font-size:12px;">${esc(USERS[c.rep]?.name||c.rep||'—')}</td>`:''}
+        ${showRep?`<td style="color:var(--text-2);font-size:12px;">${esc(USERS[userKeyForCallRep(c.rep)]?.name||c.rep||'—')}</td>`:''}
         <td><strong>${esc(c.biz)}</strong></td>
         <td>${outcomeBadge(c.outcome)}</td>
         <td style="white-space:nowrap;">${c.followup?fmt(c.followup):'—'}</td>
@@ -5254,8 +5266,8 @@
     const allCalls = getCalls();
     const visibleReps = getVisibleRepUIDs();
     let myCalls;
-    if(u.tier==='rep') myCalls = allCalls.filter(c=>c.rep===currentUser);
-    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>visibleReps.includes(c.rep));
+    if(u.tier==='rep') myCalls = allCalls.filter(c=>callRepMatchesUid(c.rep, currentUser));
+    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>callRepVisibleToUids(c.rep, visibleReps));
     else myCalls = allCalls;
     const todayCalls = myCalls.filter(c=>c.date===today);
     const interested = myCalls.filter(c=>c.outcome==='Interested');
@@ -5321,7 +5333,7 @@
         showToast('Cloud sync not ready yet','error');
         return;
         }
-        const { data, error } = await sbClient.from('calls').select('*').eq('rep', currentUser);
+        const { data, error } = await sbClient.from('calls').select('*').eq('rep', currentUser.toLowerCase());
         if(error){ throw error; }
         const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
         ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
@@ -5345,7 +5357,7 @@
     const today = new Date().toISOString().split('T')[0];
     const u = USERS[currentUser];
     let calls = getCalls();
-    if(u.tier==='rep') calls = calls.filter(c=>c.rep===currentUser);
+    if(u.tier==='rep') calls = calls.filter(c=>callRepMatchesUid(c.rep, currentUser));
     const withFU = calls.filter(c=>c.followup && c.biz).sort((a,b)=>a.followup.localeCompare(b.followup));
     const overdue = withFU.filter(c=>c.followup<today);
     const dueToday = withFU.filter(c=>c.followup===today);
@@ -5360,7 +5372,7 @@
             <div class="followup-biz">${esc(c.biz)}</div>
             <div class="followup-date">${fmt(c.followup)}</div>
             ${c.notes?`<div class="followup-notes">${esc(c.notes)}</div>`:''}
-            ${isMgmt(currentUser)?`<div class="followup-date" style="margin-top:3px;">${USERS[c.rep]?.name||c.rep}</div>`:''}
+            ${isMgmt(currentUser)?`<div class="followup-date" style="margin-top:3px;">${USERS[userKeyForCallRep(c.rep)]?.name||c.rep}</div>`:''}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
             ${outcomeBadge(c.outcome)}
@@ -5393,7 +5405,7 @@
     const visibleReps = getVisibleRepUIDs();
     const reps = Object.entries(USERS).filter(([k,v])=>v.tier==='rep' && visibleReps.includes(k));
     const stats = reps.map(([uid,u])=>{
-        const rc = calls.filter(c=>c.rep===uid);
+        const rc = calls.filter(c=>callRepMatchesUid(c.rep, uid));
         const int = rc.filter(c=>c.outcome==='Interested').length;
         const fu = rc.filter(c=>c.followup && c.followup>=today).length;
         const tod = rc.filter(c=>c.date===today).length;
@@ -5434,7 +5446,7 @@
     function renderRevenue(){
     const visibleReps = getVisibleRepUIDs();
     let calls = getCalls();
-    if(isCOO(currentUser)) calls = calls.filter(c=>visibleReps.includes(c.rep));
+    if(isCOO(currentUser)) calls = calls.filter(c=>callRepVisibleToUids(c.rep, visibleReps));
     const interested = calls.filter(c=>c.outcome==='Interested');
     const ps = getProspects();
 
@@ -5612,12 +5624,12 @@
     const ps = getProspects();
     const reps = Object.entries(USERS).filter(([,v])=>v.tier==='rep');
     const repStats = reps.map(([uid,u])=>{
-        const rc=calls.filter(c=>c.rep===uid);
+        const rc=calls.filter(c=>callRepMatchesUid(c.rep, uid));
         return `${u.name}: ${rc.length} total calls, ${rc.filter(c=>c.outcome==='Interested').length} interested, ${rc.filter(c=>c.followup&&c.followup>=today).length} follow-ups pending`;
     }).join('\n');
 
     const todayCalls = calls.filter(c=>c.date===today);
-    const hotLeads = calls.filter(c=>c.outcome==='Interested').slice(-10).map(c=>`${c.biz} (rep: ${USERS[c.rep]?.name||c.rep})`);
+    const hotLeads = calls.filter(c=>c.outcome==='Interested').slice(-10).map(c=>`${c.biz} (rep: ${USERS[userKeyForCallRep(c.rep)]?.name||c.rep})`);
     const overdueFU = calls.filter(c=>c.followup&&c.followup<today);
 
     const prompt = `You are the sales intelligence system for TecBlitzWeb, a Sri Lankan web design and AI automation agency. Today is ${today}.
@@ -5626,13 +5638,13 @@
     ${repStats}
 
     TODAY'S CALL LOG (${todayCalls.length} calls):
-    ${todayCalls.map(c=>`- ${USERS[c.rep]?.name||c.rep}: called ${c.biz}, outcome: ${c.outcome}`).join('\n')||'No calls today.'}
+    ${todayCalls.map(c=>`- ${USERS[userKeyForCallRep(c.rep)]?.name||c.rep}: called ${c.biz}, outcome: ${c.outcome}`).join('\n')||'No calls today.'}
 
     HOT LEADS (recent interested):
     ${hotLeads.join(', ')||'None yet.'}
 
     OVERDUE FOLLOW-UPS: ${overdueFU.length}
-    ${overdueFU.slice(0,5).map(c=>`- ${c.biz} (due ${c.followup}, rep: ${USERS[c.rep]?.name||c.rep})`).join('\n')}
+    ${overdueFU.slice(0,5).map(c=>`- ${c.biz} (due ${c.followup}, rep: ${USERS[userKeyForCallRep(c.rep)]?.name||c.rep})`).join('\n')}
 
     PACKAGES: Landing Page Rs.45,000 | Business Website Rs.85,000 | eCommerce Rs.175,000
 
@@ -6007,7 +6019,7 @@
     const ps = getProspects();
     const reps = Object.entries(USERS).filter(([,v])=>v.tier==='rep');
     const repStats = reps.map(([uid,u])=>{
-        const rc=calls.filter(c=>c.rep===uid);
+        const rc=calls.filter(c=>callRepMatchesUid(c.rep, uid));
         return `${u.name}: ${rc.length} total calls, ${rc.filter(c=>c.outcome==='Interested').length} interested, ${rc.filter(c=>c.followup&&c.followup>=today).length} follow-ups pending`;
     }).join('\n');
     const todayCalls = calls.filter(c=>c.date===today);
@@ -6018,7 +6030,7 @@
     Rep Stats:
     ${repStats}
 
-    Today's calls (${todayCalls.length}): ${todayCalls.map(c=>`${USERS[c.rep]?.name||c.rep} called ${c.biz} → ${c.outcome}`).join(', ')||'None yet'}
+    Today's calls (${todayCalls.length}): ${todayCalls.map(c=>`${USERS[userKeyForCallRep(c.rep)]?.name||c.rep} called ${c.biz} → ${c.outcome}`).join(', ')||'None yet'}
     Total prospects: ${ps.length}
     Hot leads: ${calls.filter(c=>c.outcome==='Interested').length}
     Overdue follow-ups: ${calls.filter(c=>c.followup&&c.followup<today).length}
@@ -7402,7 +7414,7 @@
             console.log('✓ Loaded', prospects.length, 'prospects from cloud');
         }
         });
-        sbClient.from('calls').select('*').eq('rep', currentUser).then(({ data, error }) => {
+        sbClient.from('calls').select('*').eq('rep', currentUser.toLowerCase()).then(({ data, error }) => {
         if(error){ console.error('calls load error:', error.message || error); return; }
         if(data) {
             const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
@@ -7500,7 +7512,7 @@
         if(!currentUser || !sbReady || !sbClient) return;
         const dashPage = document.getElementById('page-dashboard');
         if(!dashPage || !dashPage.classList.contains('active')) return;
-        sbClient.from('calls').select('*').eq('rep', currentUser).then(function(res){
+        sbClient.from('calls').select('*').eq('rep', currentUser.toLowerCase()).then(function(res){
         const data = res.data; const error = res.error;
         if(error || !data) return;
         const calls = data.map(normalizeCloudCallRow).filter(Boolean);
@@ -7856,7 +7868,7 @@
     // Dedup: same biz + rep + callDate (exact call) already tracked and still open
     const existing = leads.find(l => 
         l.biz === callObj.biz && 
-        l.rep === callObj.rep && 
+        callRepMatchesUid(l.rep, callObj.rep) && 
         l.callDate === callObj.date &&
         (l.status === 'new' || l.status === 'pending')
     );
@@ -7902,7 +7914,7 @@
         // Check if this exact call already has a lead (match on biz+rep+callDate)
         const exists = leads.find(l => 
         l.biz === c.biz && 
-        l.rep === c.rep && 
+        callRepMatchesUid(l.rep, c.rep) && 
         l.callDate === c.date
         );
         if(!exists){
@@ -8699,7 +8711,7 @@
     const tbody = document.getElementById('ac-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:24px;">Loading…</td></tr>';
 
-    window.supabase.from('calls').select('*').eq('rep', currentUser)
+    window.supabase.from('calls').select('*').eq('rep', currentUser.toLowerCase())
         .then(({ data, error }) => {
         if (error) {
             console.error('❌ All Calls load error:', error.message);
@@ -8782,7 +8794,7 @@
         if (from && c.date < from) return false;
         if (to && c.date > to) return false;
         if (statusF && c.outcome !== statusF) return false;
-        if (agentF && c.rep !== agentF) return false;
+        if (agentF && !callRepMatchesUid(c.rep, agentF)) return false;
         if (search) {
         const hay = (String(c.biz||'') + String(c.phone||'') + String(c.outcome||'') + String(c.rep||'') + String(c.notes||'')).toLowerCase();
         if (!hay.includes(search)) return false;
@@ -8864,7 +8876,7 @@
     let badgeColor = 'var(--purple-light)';
     let textColor = 'var(--purple-mid)';
     if (typeof USERS !== 'undefined') {
-        const found = Object.values(USERS).find(u => u.name === repName);
+        const found = Object.values(USERS).find(u => String(u.name||'').toLowerCase() === String(repName||'').toLowerCase());
         if (found) {
         if (found.tier === 'ceo' && found.role === 'CEO') {
             roleLabel = 'CEO'; badgeColor = 'rgba(168,85,247,0.25)'; textColor = '#d8b4fe';
@@ -8878,7 +8890,8 @@
     const roleChip = roleLabel
         ? `<span style="font-size:9px;font-weight:700;background:${badgeColor};color:${textColor};padding:1px 5px;border-radius:4px;margin-left:4px;letter-spacing:.3px;">${roleLabel}</span>`
         : '';
-    return `<span style="display:inline-flex;align-items:center;gap:2px;font-size:12px;background:var(--purple-light);color:var(--purple-mid);padding:2px 8px;border-radius:999px;">${esc(repName)}${roleChip}</span>`;
+    const dispName = (typeof USERS !== 'undefined' && USERS[userKeyForCallRep(repName)]) ? USERS[userKeyForCallRep(repName)].name : repName;
+    return `<span style="display:inline-flex;align-items:center;gap:2px;font-size:12px;background:var(--purple-light);color:var(--purple-mid);padding:2px 8px;border-radius:999px;">${esc(dispName)}${roleChip}</span>`;
     }
 
     // ── STATUS BADGE ──
@@ -9233,7 +9246,7 @@
     function acStartAutoRefresh() {
     if (acAutoTimer) clearInterval(acAutoTimer);
     acAutoTimer = setInterval(() => {
-        window.supabase.from('calls').select('*').eq('rep', currentUser)
+        window.supabase.from('calls').select('*').eq('rep', currentUser.toLowerCase())
         .then(({ data, error }) => {
             if (error || !data) return;
             const prevCount = acAllData.length;

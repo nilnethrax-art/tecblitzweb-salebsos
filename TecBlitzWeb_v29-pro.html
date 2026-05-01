@@ -3593,6 +3593,22 @@
         </div>
         </div>
         <div class="form-row">
+        <div class="field"><label>Phone Number</label><input type="tel" id="c-phone" placeholder="07X XXX XXXX"></div>
+        <div class="field"><label>Business Type</label>
+            <select id="c-biztype">
+            <option value="">— Optional —</option>
+            <option>Auto Repair</option>
+            <option>Beauty Salon / Spa</option>
+            <option>Car Sales</option>
+            <option>Clinic / Pharmacy</option>
+            <option>Restaurant / Cafe</option>
+            <option>Retail Shop</option>
+            <option>Spare Parts</option>
+            <option>Other</option>
+            </select>
+        </div>
+        </div>
+        <div class="form-row">
         <div class="field"><label>Call Date *</label><input type="date" id="c-date" required></div>
         <div class="field"><label>Call Time *</label><input type="time" id="c-time" required></div>
         </div>
@@ -4532,6 +4548,8 @@
         document.getElementById('call-modal-title').textContent='Log a Call';
         document.getElementById('c-biz').value='';
         document.getElementById('c-outcome').value='';
+        document.getElementById('c-phone').value = '';
+        document.getElementById('c-biztype').value = '';
         document.getElementById('c-date').value=todayLocal;
         document.getElementById('c-time').value=timeLocal;
         document.getElementById('c-duration').value='';
@@ -4978,6 +4996,8 @@
         id: id||Date.now().toString(),
         rep: currentUser,
         biz: biz,
+        phone: document.getElementById('c-phone').value.trim(),
+        bizType: document.getElementById('c-biztype').value,
         outcome: outcome,
         date: date,
         time: time,
@@ -5019,6 +5039,8 @@
         duration: obj.duration,
         outcome: obj.outcome,
         followup: obj.followup || null,
+        phone: obj.phone || '',
+        bizType: obj.bizType || '',
         notes: obj.notes,
         rep: obj.rep,
         createdat: createdAtIso
@@ -7413,6 +7435,21 @@
         }, 100);
     }
     goPage('dashboard');
+    // Clear stale localStorage calls older than 7 days to prevent date mismatch
+    (function purgeStaleCalls(){
+        const calls = getCalls();
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        const cutoffYmd = cutoff.toISOString().split('T')[0];
+        const fresh = calls.filter(c => {
+        const ymd = dashParseCallDateYmd(c);
+        return !ymd || ymd >= cutoffYmd;
+        });
+        if(fresh.length !== calls.length){
+        ls('calls', fresh);
+        console.log('✓ Purged', calls.length - fresh.length, 'stale calls from localStorage');
+        }
+    })();
     // Repair: backfill any Interested calls that never made it into the pipeline
     setTimeout(pipelineRepairMissing, 600);
     // Clean: purge any calls with no business name from localStorage + Supabase

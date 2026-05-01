@@ -4281,7 +4281,9 @@
     try {
         const HDR = window.BASE_HDR;
         if(!window.SB_URL || !HDR) return null;
-        const r = await fetch(window.SB_URL + '/rest/v1/' + table + '?select=*', { headers: HDR });
+        let _url = window.SB_URL + '/rest/v1/' + table + '?select=*';
+        if(table === 'calls' && currentUser){ _url += '&rep=eq.' + encodeURIComponent(currentUser); }
+        const r = await fetch(_url, { headers: HDR });
         if(r.status === 404 || r.status === 400){
         if(table === 'closed_deals') window._closedDealsTableMissing = true;
         return null;
@@ -4952,7 +4954,7 @@
     async function loadDashboard(){
     try{
         if(sbReady && sbClient){
-        var res = await sbClient.from('calls').select('*');
+        var res = await sbClient.from('calls').select('*').eq('rep', currentUser);
         var data = res && res.data;
         var err = res && res.error;
         if(!err && Array.isArray(data)){
@@ -5073,7 +5075,7 @@
     // Refresh All Calls live data if page is active
     const allCallsPage = document.getElementById('page-allcalls');
     if (allCallsPage && allCallsPage.classList.contains('active') && _acInited) {
-        window.supabase.from('calls').select('*').then(({ data, error }) => {
+        window.supabase.from('calls').select('*').eq('rep', currentUser).then(({ data, error }) => {
         if (!error && data) {
             acAllData = data.map(mapCloudRowToAcRow).filter(Boolean);
             acAllData.sort((a, b) => b.ts - a.ts);
@@ -5096,7 +5098,7 @@
 
     // Force re-fetch from Supabase after save so dashboard shows latest
     if(sbReady && sbClient){
-        sbClient.from('calls').select('*').then(function(res){
+        sbClient.from('calls').select('*').eq('rep', currentUser).then(function(res){
             if(res.error || !res.data) return;
             const fresh = (res.data || []).map(normalizeCloudCallRow).filter(Boolean);
             ls('calls', mergeByIdPreserveLocal(fresh, getCalls()));
@@ -5319,7 +5321,7 @@
         showToast('Cloud sync not ready yet','error');
         return;
         }
-        const { data, error } = await sbClient.from('calls').select('*');
+        const { data, error } = await sbClient.from('calls').select('*').eq('rep', currentUser);
         if(error){ throw error; }
         const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
         ls('calls', mergeByIdPreserveLocal(calls, getCalls()));
@@ -7400,7 +7402,7 @@
             console.log('✓ Loaded', prospects.length, 'prospects from cloud');
         }
         });
-        sbClient.from('calls').select('*').then(({ data, error }) => {
+        sbClient.from('calls').select('*').eq('rep', currentUser).then(({ data, error }) => {
         if(error){ console.error('calls load error:', error.message || error); return; }
         if(data) {
             const calls = (data || []).map(normalizeCloudCallRow).filter(Boolean);
@@ -7498,7 +7500,7 @@
         if(!currentUser || !sbReady || !sbClient) return;
         const dashPage = document.getElementById('page-dashboard');
         if(!dashPage || !dashPage.classList.contains('active')) return;
-        sbClient.from('calls').select('*').then(function(res){
+        sbClient.from('calls').select('*').eq('rep', currentUser).then(function(res){
         const data = res.data; const error = res.error;
         if(error || !data) return;
         const calls = data.map(normalizeCloudCallRow).filter(Boolean);
@@ -8697,7 +8699,7 @@
     const tbody = document.getElementById('ac-tbody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-2);padding:24px;">Loading…</td></tr>';
 
-    window.supabase.from('calls').select('*')
+    window.supabase.from('calls').select('*').eq('rep', currentUser)
         .then(({ data, error }) => {
         if (error) {
             console.error('❌ All Calls load error:', error.message);
@@ -9231,7 +9233,7 @@
     function acStartAutoRefresh() {
     if (acAutoTimer) clearInterval(acAutoTimer);
     acAutoTimer = setInterval(() => {
-        window.supabase.from('calls').select('*')
+        window.supabase.from('calls').select('*').eq('rep', currentUser)
         .then(({ data, error }) => {
             if (error || !data) return;
             const prevCount = acAllData.length;

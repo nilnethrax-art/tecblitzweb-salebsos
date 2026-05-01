@@ -5092,7 +5092,28 @@
         renderPipeline();
         }
     }
-    showToast(id?'Call updated':'Call logged','success');
+    showToast(id ? 'Call updated' : 'Call logged', 'success');
+
+    // Force re-fetch from Supabase after save so dashboard shows latest
+    if(sbReady && sbClient){
+        sbClient.from('calls').select('*').then(function(res){
+            if(res.error || !res.data) return;
+            const fresh = (res.data || []).map(normalizeCloudCallRow).filter(Boolean);
+            ls('calls', mergeByIdPreserveLocal(fresh, getCalls()));
+            renderDashboard();
+            renderMyCalls();
+            renderFollowups();
+            updatePipelineNavBadge();
+            if(typeof _acInited !== 'undefined' && _acInited && typeof acApplyFilters === 'function'){
+                acAllData = fresh.map(mapCloudRowToAcRow).filter(Boolean);
+                acAllData.sort(function(a,b){ return b.ts - a.ts; });
+                acApplyFilters();
+            }
+        });
+    } else {
+        renderDashboard();
+        renderMyCalls();
+    }
     }
     function deleteCall(id){
     showConfirm('Delete this call log?', function(){

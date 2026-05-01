@@ -91,13 +91,20 @@
     #login-screen{
     display:flex;
     min-height:100vh;
-    align-items:stretch;
+    align-items:center;
+    justify-content:center;
     position:relative;
     overflow:hidden;
-    isolation:isolate;
-    z-index:2;
-    background:#0a0a0f !important;
-    background-color:#0a0a0f !important;
+    background:linear-gradient(135deg,#ede9fe 0%,#c7d2fe 30%,#bae6fd 60%,#e0f2fe 100%);
+    background-size:400% 400%;
+    animation:meshMove 10s ease-in-out infinite alternate;
+    }
+    @keyframes meshMove{
+    0%{background-position:0% 0%;}
+    25%{background-position:100% 0%;}
+    50%{background-position:100% 100%;}
+    75%{background-position:0% 100%;}
+    100%{background-position:50% 50%;}
     }
     #login-screen::before{
     content:'';
@@ -105,8 +112,17 @@
     inset:0;
     z-index:0;
     pointer-events:none;
-    background:linear-gradient(135deg,#0a0a0f 0%,#12091a 50%,#0d1520 100%);
-    animation:bgShift 12s ease-in-out infinite alternate;
+    background:
+    radial-gradient(ellipse 60% 50% at 80% 20%,rgba(124,58,237,0.4) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 60% at 10% 80%,rgba(34,211,238,0.35) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,rgba(168,85,247,0.2) 0%,transparent 70%);
+    animation:orbDrift 8s ease-in-out infinite alternate;
+    }
+    @keyframes orbDrift{
+    0%{transform:translate(0px,0px) scale(1);}
+    33%{transform:translate(-30px,20px) scale(1.05);}
+    66%{transform:translate(20px,-25px) scale(0.97);}
+    100%{transform:translate(-15px,15px) scale(1.03);}
     }
     #login-screen::after{
     content:'';
@@ -114,61 +130,28 @@
     inset:0;
     z-index:0;
     pointer-events:none;
-    opacity:0.4;
-    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-    background-size:180px 180px;
-    mix-blend-mode:overlay;
+    opacity:0.35;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-size:200px 200px;
+    mix-blend-mode:soft-light;
     }
     body.dark #login-screen,
     body:not(.light) #login-screen{
-    background:#0a0a0f !important;
-    background-color:#0a0a0f !important;
+    background:linear-gradient(135deg,#0a0a0f 0%,#12091a 30%,#0d1520 60%,#0a0a0f 100%);
+    background-size:400% 400%;
+    animation:meshMoveDark 10s ease-in-out infinite alternate;
     }
-    .login-orb{
-    position:absolute;
-    border-radius:50%;
-    pointer-events:none;
-    z-index:2;
+    body.dark #login-screen::before,
+    body:not(.light) #login-screen::before{
+    background:
+    radial-gradient(ellipse 60% 50% at 80% 20%,rgba(168,85,247,0.3) 0%,transparent 70%),
+    radial-gradient(ellipse 50% 60% at 10% 80%,rgba(34,211,238,0.2) 0%,transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 50%,rgba(124,58,237,0.15) 0%,transparent 70%);
     }
-    .login-orb1{
-    width:600px;height:600px;
-    background:radial-gradient(circle,rgba(168,85,247,0.18),transparent 70%);
-    top:-200px;right:-150px;
-    animation:orbFloat1 8s ease-in-out infinite alternate;
-    }
-    .login-orb2{
-    width:400px;height:400px;
-    background:radial-gradient(circle,rgba(34,211,238,0.1),transparent 70%);
-    bottom:-100px;left:-100px;
-    animation:orbFloat2 10s ease-in-out infinite alternate;
-    }
-    .login-orb3{
-    width:250px;height:250px;
-    background:radial-gradient(circle,rgba(168,85,247,0.08),transparent 70%);
-    top:50%;left:30%;
-    animation:orbFloat3 7s ease-in-out infinite alternate;
-    }
-    @keyframes orbFloat1{
-    from{transform:translate(0,0) scale(1);}
-    to{transform:translate(-40px,30px) scale(1.1);}
-    }
-    @keyframes orbFloat2{
-    from{transform:translate(0,0) scale(1);}
-    to{transform:translate(30px,-40px) scale(1.15);}
-    }
-    @keyframes orbFloat3{
-    from{transform:translate(0,0) scale(1);}
-    to{transform:translate(-20px,20px) scale(0.9);}
-    }
-    @keyframes bgShift{
-    0%{background:linear-gradient(135deg,#0a0a0f 0%,#12091a 50%,#0d1520 100%);}
-    50%{background:linear-gradient(135deg,#0d0a18 0%,#0a1020 50%,#150a1a 100%);}
-    100%{background:linear-gradient(135deg,#080a14 0%,#140830 50%,#0a1018 100%);}
-    }
-    @keyframes bgShiftLight{
-    0%{background:linear-gradient(135deg,rgba(124,58,237,0.12) 0%,rgba(34,211,238,0.08) 100%);}
-    50%{background:linear-gradient(135deg,rgba(99,102,241,0.15) 0%,rgba(168,85,247,0.1) 100%);}
-    100%{background:linear-gradient(135deg,rgba(34,211,238,0.1) 0%,rgba(124,58,237,0.14) 100%);}
+    @keyframes meshMoveDark{
+    0%{background-position:0% 0%;}
+    50%{background-position:100% 100%;}
+    100%{background-position:50% 0%;}
     }
     .login-left{
     flex:1;
@@ -178,11 +161,11 @@
     padding:40px;
     position:relative;
     overflow:hidden;
-    z-index:3;
+    z-index:1;
     }
     .login-card{
     position:relative;
-    z-index:3;
+    z-index:1;
     width:360px;
     background:rgba(17,17,24,0.55);
     backdrop-filter:blur(28px) saturate(1.2);
@@ -635,29 +618,6 @@
         linear-gradient(160deg, #ECEEF2 0%, #F4F5F8 45%, #E8EBF2 100%);
     }
     body.light::after { display: none; }
-    body.light #login-screen{
-    background:linear-gradient(135deg,#ede9fe 0%,#dbeafe 40%,#e0f2fe 70%,#f5f3ff 100%) !important;
-    }
-    body.light #login-screen::before{
-    background:linear-gradient(135deg,rgba(124,58,237,0.12) 0%,rgba(34,211,238,0.08) 50%,rgba(168,85,247,0.1) 100%) !important;
-    animation:bgShiftLight 12s ease-in-out infinite alternate;
-    z-index:0;
-    }
-    body.light .login-orb1{
-    width:700px;height:700px;
-    background:radial-gradient(circle,rgba(124,58,237,0.35),transparent 65%);
-    top:-250px;right:-180px;
-    }
-    body.light .login-orb2{
-    width:500px;height:500px;
-    background:radial-gradient(circle,rgba(34,211,238,0.28),transparent 65%);
-    bottom:-150px;left:-120px;
-    }
-    body.light .login-orb3{
-    width:300px;height:300px;
-    background:radial-gradient(circle,rgba(168,85,247,0.22),transparent 65%);
-    top:40%;left:25%;
-    }
     body.light .login-card { background: #ffffff !important; border: 1px solid rgba(124,58,237,0.2) !important; box-shadow: 0 24px 64px rgba(124,58,237,0.12) !important; }
     body.light .login-card h1, body.light .login-card p, body.light .login-card label { color: #0F172A !important; }
     body.light .login-card p { color: #64748B !important; }
@@ -2459,9 +2419,6 @@
 
     <!-- LOGIN -->
     <div id="login-screen">
-    <div class="login-orb login-orb1"></div>
-    <div class="login-orb login-orb2"></div>
-    <div class="login-orb login-orb3"></div>
     <div class="login-left">
         <div class="login-card">
         <div class="login-logo">

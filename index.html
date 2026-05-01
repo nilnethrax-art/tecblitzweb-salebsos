@@ -2565,10 +2565,10 @@
     this.x = Math.random() * W;
     this.y = Math.random() * H;
     this.r = Math.random() * 180 + 80;
-    this.vx = (Math.random() - 0.5) * 0.4;
-    this.vy = (Math.random() - 0.5) * 0.4;
+    this.vx = (Math.random() - 0.5) * 1.2;
+    this.vy = (Math.random() - 0.5) * 1.2;
     this.hue = Math.random() > 0.5 ? 270 : 190;
-    this.alpha = Math.random() * 0.12 + 0.06;
+    this.alpha = Math.random() * 0.25 + 0.15;
     }
     Particle.prototype.update = function(){
     this.x += this.vx;
@@ -2591,11 +2591,11 @@
     };
     function initParticles(){
     particles = [];
-    for(let i = 0; i < 7; i++) particles.push(new Particle());
+    for(let i = 0; i < 10; i++) particles.push(new Particle());
     }
     function loop(){
     const light = isLight();
-    ctx.fillStyle = light ? 'rgba(240,235,255,0.25)' : 'rgba(10,10,15,0.25)';
+    ctx.fillStyle = light ? 'rgba(240,235,255,0.15)' : 'rgba(10,10,15,0.15)';
     ctx.fillRect(0, 0, W, H);
     particles.forEach(function(p){ p.update(); p.draw(); });
     animId = requestAnimationFrame(loop);

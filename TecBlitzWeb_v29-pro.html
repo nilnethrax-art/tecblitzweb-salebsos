@@ -82,7 +82,7 @@
         pointer-events:none;
         z-index:0;
     }
-    #app, #login-screen { position:relative; z-index:1; }
+    #app{position:relative;z-index:1;}
     button{cursor:pointer;font-family:'Outfit',sans-serif;}
     button svg, [onclick] svg { pointer-events: none; }
     input,select,textarea{font-family:'Outfit',sans-serif;}
@@ -94,14 +94,27 @@
     align-items:stretch;
     position:relative;
     overflow:hidden;
-    background:#0a0a0f;
+    isolation:isolate;
+    z-index:2;
+    background:#0a0a0f !important;
+    background-color:#0a0a0f !important;
     }
     #login-screen::before{
     content:'';
     position:absolute;
     inset:0;
-    background:linear-gradient(135deg,#0a0a0f 0%,#12091a 50%,#0d1520 100%);
+    background:linear-gradient(135deg,#0a0a0f 0%,#12091a 50%,#0d1520 100%) !important;
     z-index:0;
+    pointer-events:none;
+    }
+    body.dark #login-screen,
+    body:not(.light) #login-screen{
+    background:#0a0a0f !important;
+    background-color:#0a0a0f !important;
+    }
+    body.dark #login-screen::before,
+    body:not(.light) #login-screen::before{
+    background:linear-gradient(135deg,#0a0a0f 0%,#12091a 50%,#0d1520 100%) !important;
     }
     .login-orb{
     position:absolute;

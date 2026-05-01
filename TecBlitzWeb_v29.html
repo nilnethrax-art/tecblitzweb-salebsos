@@ -86,7 +86,7 @@
     .login-right{width:360px;background:linear-gradient(160deg,rgba(168,85,247,0.25) 0%,rgba(99,102,241,0.2) 50%,rgba(34,211,238,0.15) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:40px;}
     .login-right-text{color:rgba(255,255,255,0.65);font-family:'Syne',sans-serif;font-size:13px;text-align:center;line-height:1.6;}
     .login-right h2{color:#fff;font-family:'Syne',sans-serif;font-size:22px;font-weight:700;text-align:center;}
-    .login-card{width:360px;background:rgba(17,17,24,0.55);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border:1px solid rgba(168,85,247,0.18);border-radius:22px;padding:36px;box-shadow:0 24px 64px rgba(0,0,0,0.55),0 0 48px rgba(168,85,247,0.08),inset 0 1px 0 rgba(255,255,255,0.06);}
+    .login-card{width:360px;background:rgba(17,17,24,0.55);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border:1px solid rgba(168,85,247,0.18);border-radius:22px;padding:36px;box-shadow:0 24px 64px rgba(0,0,0,0.55),0 0 48px rgba(168,85,247,0.08),inset 0 1px 0 rgba(255,255,255,0.06);transform-style:preserve-3d;}
     .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
     .login-logo svg{width:36px;height:36px;}
     .login-logo span{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);}
@@ -304,6 +304,16 @@
         linear-gradient(160deg, #ECEEF2 0%, #F4F5F8 45%, #E8EBF2 100%);
     }
     body.light::after { display: none; }
+    body.light #login-screen { background: linear-gradient(135deg, #f0ebff 0%, #e8f4ff 100%); }
+    body.light .login-right { background: linear-gradient(160deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.1) 50%, rgba(34,211,238,0.08) 100%); border-left: 1px solid rgba(124,58,237,0.15); }
+    body.light .login-right-text { color: #4C1D95 !important; }
+    body.light .login-right h2 { color: #1E1B4B !important; }
+    body.light .login-card { background: #ffffff !important; border: 1px solid rgba(124,58,237,0.2) !important; box-shadow: 0 24px 64px rgba(124,58,237,0.12) !important; }
+    body.light .login-card h1, body.light .login-card p, body.light .login-card label { color: #0F172A !important; }
+    body.light .login-card p { color: #64748B !important; }
+    body.light .login-card input { background: #F8FAFC !important; border: 1px solid rgba(124,58,237,0.2) !important; color: #0F172A !important; }
+    body.light .login-card input::placeholder { color: #94A3B8 !important; }
+    body.light .login-card input:focus { border-color: #7C3AED !important; background: #fff !important; }
     body.light .sidebar {
         background: rgba(255,255,255,0.95);
         border-color: rgba(0,0,0,0.08);
@@ -1729,8 +1739,8 @@
         animation: loginCardIn .7s cubic-bezier(.2,.9,.2,1) .08s both;
     }
     @keyframes loginCardIn {
-        from { opacity: 0; transform: translateY(22px) scale(.96); filter: blur(1px); }
-        to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        from { opacity: 0; filter: blur(8px); }
+        to { opacity: 1; filter: blur(0px); }
     }
 
     .btn-primary, .btn, .tm-edit-btn, .nav-item, .stat-card, .card {
@@ -1834,6 +1844,27 @@
 
     </head>
     <body>
+    <script>
+    (function(){
+    try{
+    var savedTheme = localStorage.getItem('theme');
+    if(!savedTheme){
+        var legacy = localStorage.getItem('colorMode');
+        if(legacy === 'dark' || legacy === 'light'){
+        localStorage.setItem('theme', legacy);
+        savedTheme = legacy;
+        } else {
+        savedTheme = 'dark';
+        }
+    }
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add(savedTheme);
+    }catch(e){
+    document.body.classList.remove('light', 'dark');
+    document.body.classList.add('dark');
+    }
+    })();
+    </script>
 
     <!-- LOGIN -->
     <div id="login-screen">
@@ -6762,31 +6793,36 @@
         body.classList.add('light');
         if(track) track.classList.remove('on');
         if(label) label.textContent = 'Dark Mode';
-        try{ localStorage.setItem('colorMode','light'); }catch(e){}
+        try{ localStorage.setItem('theme','light'); }catch(e){}
     } else {
         body.classList.remove('light');
         body.classList.add('dark');
         if(track) track.classList.add('on');
         if(label) label.textContent = 'Light Mode';
-        try{ localStorage.setItem('colorMode','dark'); }catch(e){}
+        try{ localStorage.setItem('theme','dark'); }catch(e){}
     }
     }
-    // Restore preference on load — default is light
+    // Sync sidebar theme toggle UI (body class applied by head script + theme key)
     (function(){
-    try{
-        const mode = localStorage.getItem('colorMode');
-        if(mode === 'dark'){
-        document.body.classList.add('dark');
-        window.addEventListener('DOMContentLoaded',()=>{
-            const track = document.getElementById('dark-toggle-track');
-            const label = document.getElementById('dark-toggle-label-text');
+    function syncThemeToggle(){
+        try{
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const track = document.getElementById('dark-toggle-track');
+        const label = document.getElementById('dark-toggle-label-text');
+        if(savedTheme === 'dark'){
             if(track) track.classList.add('on');
             if(label) label.textContent = 'Light Mode';
-        });
         } else {
-        document.body.classList.add('light');
+            if(track) track.classList.remove('on');
+            if(label) label.textContent = 'Dark Mode';
         }
-    }catch(e){ document.body.classList.add('light'); }
+        }catch(e){}
+    }
+    if(document.readyState === 'loading'){
+        document.addEventListener('DOMContentLoaded', syncThemeToggle);
+    } else {
+        syncThemeToggle();
+    }
     })();
 
 
@@ -8280,5 +8316,40 @@
 
     // ── All Calls v2 state vars exposed globally for goPage handler ──
     // _acInited, acLastUpdated, initAllCallsV2, acApplyFilters are used by goPage in the renders map above
+
+    // Login card mouse tilt (after DOM ready — handle late scripts where DOMContentLoaded already fired)
+    (function(){
+    function attachLoginTilt(){
+    (function(){
+    const screen = document.getElementById('login-screen');
+    const card = document.querySelector('.login-card');
+    if(!screen || !card) return;
+    screen.addEventListener('mousemove', function(e){
+        const rect = card.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = e.clientX - cx;
+        const dy = e.clientY - cy;
+        const tiltX = -(dy / (window.innerHeight / 2)) * 10;
+        const tiltY = (dx / (window.innerWidth / 2)) * 10;
+        const shadowX = -tiltY * 2;
+        const shadowY = tiltX * 2;
+        card.style.transform = 'perspective(1000px) rotateX('+tiltX+'deg) rotateY('+tiltY+'deg)';
+        card.style.boxShadow = shadowX+'px '+shadowY+'px 60px rgba(0,0,0,0.45), 0 0 40px rgba(168,85,247,0.15), inset 0 1px 0 rgba(255,255,255,0.06)';
+        card.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
+    });
+    screen.addEventListener('mouseleave', function(){
+        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
+        card.style.boxShadow = '';
+        card.style.transition = 'transform 0.4s ease, box-shadow 0.4s ease';
+    });
+    })();
+    }
+    if(document.readyState === 'loading'){
+    window.addEventListener('DOMContentLoaded', attachLoginTilt);
+    } else {
+    attachLoginTilt();
+    }
+    })();
     </script>
     </body>

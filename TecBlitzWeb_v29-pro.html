@@ -777,6 +777,8 @@
 
     .main-content{margin-left:var(--sidebar);flex:1;padding:32px 36px 40px;min-height:100vh;background:transparent;}
     .page-header{margin-bottom:28px;}
+    #page-dashboard .dash-page-header{overflow:visible;}
+    #page-dashboard .dash-header-actions{overflow:visible;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
     .page-header h2{font-family:'Syne',sans-serif;font-size:clamp(22px,2.6vw,30px);font-weight:800;color:var(--text);text-shadow:0 0 28px rgba(168,85,247,0.25);letter-spacing:-0.03em;}
     .page-header p{color:var(--text-2);font-size:15px;margin-top:8px;font-weight:450;}
     .page{display:none;}
@@ -797,16 +799,28 @@
     .rev-card{background:var(--glass-card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:4px;transition:box-shadow var(--t-fast),transform var(--t-fast),border-color var(--t-fast);box-shadow:0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05);}
     .rev-card:hover{box-shadow:0 12px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(168,85,247,0.25);transform:translateY(-2px);border-color:rgba(168,85,247,0.35);}
     .stat-label{font-size:13px;font-family:'Syne',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.45px;color:var(--text-2);margin-bottom:2px;line-height:1.35;}
-    .stat-num{font-family:'Syne',sans-serif;font-size:clamp(26px,3.8vw,38px);font-weight:800;line-height:1.08;letter-spacing:-0.035em;background:linear-gradient(135deg,#E9D5FF,var(--purple-mid),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    body:not(.light) .stat-num{filter:drop-shadow(0 0 14px rgba(168,85,247,0.35)) drop-shadow(0 0 24px rgba(34,211,238,0.12));}
-    body.light .stat-num{filter:none;}
-    .stat-num.stat-num-solid{color:var(--purple-mid);-webkit-text-fill-color:var(--purple-mid);background:none;}
-    body:not(.light) .stat-num.stat-num-solid{filter:drop-shadow(0 0 12px rgba(168,85,247,0.5));}
-    .stat-num.stat-num-cyan{color:var(--cyan);-webkit-text-fill-color:var(--cyan);background:none;}
-    body:not(.light) .stat-num.stat-num-cyan{filter:drop-shadow(0 0 14px rgba(34,211,238,0.45));}
+    .stat-num{display:block;line-height:1;}
+    .stat-num .stat-num-value{
+    font-family:'Syne',sans-serif;
+    font-size:clamp(26px,3.8vw,38px);
+    font-weight:800;
+    line-height:1.08;
+    letter-spacing:-0.035em;
+    display:inline-block;
+    background:linear-gradient(135deg,#E9D5FF,var(--purple-mid),var(--cyan));
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    }
+    body:not(.light) .stat-num .stat-num-value{filter:drop-shadow(0 0 14px rgba(168,85,247,0.35)) drop-shadow(0 0 24px rgba(34,211,238,0.12));}
+    body.light .stat-num .stat-num-value{filter:none;}
+    .stat-num.stat-num-solid .stat-num-value{color:var(--purple-mid);-webkit-text-fill-color:var(--purple-mid);background:none;}
+    body:not(.light) .stat-num.stat-num-solid .stat-num-value{filter:drop-shadow(0 0 12px rgba(168,85,247,0.5));}
+    .stat-num.stat-num-cyan .stat-num-value{color:var(--cyan);-webkit-text-fill-color:var(--cyan);background:none;}
+    body:not(.light) .stat-num.stat-num-cyan .stat-num-value{filter:drop-shadow(0 0 14px rgba(34,211,238,0.45));}
     .stat-sub{font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.4;}
     /* Stat / dashboard numerals — Syne + normal variants (fixes blob/shape glyphs on mobile WebKit) */
-    .stat-value,.stat-num,.stat-count,[class*="stat-val"],[class*="stat-number"],
+    .stat-value,.stat-num,.stat-num-value,.stat-count,[class*="stat-val"],[class*="stat-number"],
     .ac-stat-num,.dashboard-number{
     font-family:'Syne',sans-serif !important;
     font-style:normal !important;
@@ -947,7 +961,7 @@
     .stat-grid.stat-grid-bento{grid-template-columns:repeat(12,1fr);gap:18px;align-items:stretch;}
     @media (min-width:769px){
         .stat-grid.stat-grid-bento .stat-bento-hero{grid-column:span 8;min-height:168px;padding:28px 30px 30px;}
-        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num{font-size:clamp(34px,4.2vw,48px);}
+        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num .stat-num-value{font-size:clamp(34px,4.2vw,48px);}
         .stat-grid.stat-grid-bento .stat-bento-side{grid-column:span 4;min-height:168px;padding:24px 22px;}
         .stat-grid.stat-grid-bento .stat-bento-sm{grid-column:span 4;min-height:128px;}
         .stat-grid.stat-grid-bento .stat-bento-mid{grid-column:span 5;min-height:128px;}
@@ -1107,7 +1121,7 @@
         .stat-grid.stat-grid-bento .stat-bento-sm,
         .stat-grid.stat-grid-bento .stat-bento-mid,
         .stat-grid.stat-grid-bento .stat-bento-xs{grid-column:1/-1!important;min-height:0!important;padding:20px 18px!important;}
-        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num{font-size:clamp(28px,9vw,40px)!important;}
+        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num .stat-num-value{font-size:clamp(28px,9vw,40px)!important;}
         .two-col{grid-template-columns:1fr !important;}
         .revenue-strip{grid-template-columns:1fr 1fr !important;}
         .prospect-grid{grid-template-columns:1fr !important;}
@@ -1118,12 +1132,24 @@
         .page-header{margin-bottom:20px;}
         .page-header h2{font-size:clamp(20px,5vw,24px);}
         /* Dashboard — keep Refresh / Log Call fully visible (no horizontal clip) */
-        #page-dashboard .page-header{
+        #page-dashboard .dash-page-header{
+        overflow:visible !important;
+        flex-wrap:wrap !important;
+        }
+        #page-dashboard .dash-header-actions{
+        overflow:visible !important;
+        flex-wrap:wrap !important;
+        width:100%;
+        min-width:0;
+        }
+        #page-dashboard .page-header,
+        #page-dashboard .dash-page-header{
         flex-direction:column !important;
         align-items:stretch !important;
         gap:14px;
         }
-        #page-dashboard .page-header > div:nth-child(2){
+        #page-dashboard .page-header > div:nth-child(2),
+        #page-dashboard .dash-header-actions{
         width:100%;
         min-width:0;
         display:flex !important;
@@ -1132,10 +1158,13 @@
         justify-content:flex-start;
         }
         #page-dashboard .page-header #dash-refresh-btn,
-        #page-dashboard .page-header .btn-header-log-call{
+        #page-dashboard .page-header .btn-header-log-call,
+        #page-dashboard .dash-header-actions #dash-refresh-btn,
+        #page-dashboard .dash-header-actions .btn-header-log-call{
         flex:1 1 auto;
         min-width:0;
         max-width:100%;
+        white-space:normal;
         }
 
         /* Search / filters — stack vertically, readable (16px avoids iOS input zoom) */
@@ -1164,9 +1193,9 @@
         /* Cards — readable padding */
         .card{padding:18px;}
         .stat-card{padding:20px 18px;min-height:0;}
-        .stat-num{font-size:clamp(26px,8vw,32px);}
+        .stat-num .stat-num-value{font-size:clamp(26px,8vw,32px);}
         /* iOS/WebKit: gradient text + drop-shadow often draws digits as blobs; use solid colors on small screens */
-        .stat-num,.ac-stat-num,.ac-stat-num.ac-count-anim{
+        .stat-num .stat-num-value,.ac-stat-num,.ac-stat-num.ac-count-anim,.ac-stat-num.ac-count-anim .stat-num-value{
         background:none !important;
         background-image:none !important;
         -webkit-background-clip:unset !important;
@@ -1174,7 +1203,7 @@
         -webkit-text-fill-color:unset !important;
         filter:none !important;
         }
-        .stat-value,.stat-num,.stat-count,[class*="stat-val"],[class*="stat-number"],
+        .stat-value,.stat-num,.stat-num-value,.stat-count,[class*="stat-val"],[class*="stat-number"],
         .ac-stat-num,.ac-count-anim{
         font-family:'Syne',sans-serif !important;
         font-style:normal !important;
@@ -1183,13 +1212,13 @@
         -webkit-font-smoothing:antialiased;
         -moz-osx-font-smoothing:grayscale;
         }
-        .stat-num:not(.stat-num-solid):not(.stat-num-cyan){color:var(--purple-mid);}
-        .stat-num.stat-num-solid{color:var(--purple-mid) !important;}
-        .stat-num.stat-num-cyan{color:var(--cyan) !important;}
-        .ac-stat-num,.ac-stat-num.ac-count-anim{color:var(--purple-mid);}
-        body.light .stat-num:not(.stat-num-cyan){color:#7C3AED !important;}
-        body.light .stat-num.stat-num-cyan{color:#0891B2 !important;}
-        body.light .ac-stat-num,body.light .ac-stat-num.ac-count-anim{color:#7C3AED !important;}
+        .stat-num:not(.stat-num-solid):not(.stat-num-cyan) .stat-num-value{color:var(--purple-mid);}
+        .stat-num.stat-num-solid .stat-num-value{color:var(--purple-mid) !important;}
+        .stat-num.stat-num-cyan .stat-num-value{color:var(--cyan) !important;}
+        .ac-stat-num,.ac-stat-num.ac-count-anim,.ac-stat-num.ac-count-anim .stat-num-value{color:var(--purple-mid);}
+        body.light .stat-num:not(.stat-num-cyan) .stat-num-value{color:#7C3AED !important;}
+        body.light .stat-num.stat-num-cyan .stat-num-value{color:#0891B2 !important;}
+        body.light .ac-stat-num,body.light .ac-stat-num.ac-count-anim,body.light .ac-stat-num.ac-count-anim .stat-num-value{color:#7C3AED !important;}
 
         /* Modal — full width sheet on mobile */
         .modal-overlay{align-items:flex-end;padding:0;}
@@ -1878,10 +1907,17 @@
         font-size:10px;font-family:'Syne',sans-serif;font-weight:700;
         text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin-bottom:6px;
     }
-    .ac-stat-num {
-        font-family:'Syne',sans-serif;font-size:26px;font-weight:700;
-        background:linear-gradient(135deg,var(--purple),var(--cyan));
-        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    .ac-stat-num{
+        font-family:'Syne',sans-serif;
+        font-size:26px;
+        font-weight:700;
+        line-height:1.1;
+        display:block;
+    }
+    .ac-stat-num .stat-num-value{
+        display:inline-block;
+        font:inherit;
+        font-family:'Syne',sans-serif;
     }
     .ac-stat-sub { font-size:11px;color:var(--text-2);margin-top:3px; }
 
@@ -2531,14 +2567,14 @@
 
         <!-- DASHBOARD -->
         <div id="page-dashboard" class="page active">
-            <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+            <div class="page-header dash-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;overflow:visible;">
             <div>
                 <h2>Dashboard</h2>
                 <p id="dash-date"></p>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-                <button class="btn btn-outline" onclick="dashboardRefreshNow()" id="dash-refresh-btn" style="flex-shrink:0;">Refresh Now</button>
-                <button class="btn btn-purple btn-header-log-call" onclick="openModal('call-modal')" style="flex-shrink:0;">+ Log Call</button>
+            <div class="dash-header-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;overflow:visible;min-width:0;">
+                <button class="btn btn-outline" onclick="dashboardRefreshNow()" id="dash-refresh-btn" style="min-width:0;white-space:normal;">Refresh Now</button>
+                <button class="btn btn-purple btn-header-log-call" onclick="openModal('call-modal')" style="min-width:0;white-space:normal;">+ Log Call</button>
             </div>
             </div>
             <div class="stat-grid stat-grid-bento" id="dash-stats"></div>
@@ -4856,11 +4892,11 @@
     var _icCal='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
     var _icUsers='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>';
     document.getElementById('dash-stats').innerHTML=`
-        <div class="stat-card stat-accent-purple stat-bento-hero"><div class="stat-card-top"><div><div class="stat-label">Calls Today</div></div><div class="stat-card-icon" aria-hidden="true">${_icPhone}</div></div><div class="stat-num">${todayCalls.length}</div><div class="stat-sub">as of ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-side"><div class="stat-card-top"><div><div class="stat-label">Total Calls</div></div><div class="stat-card-icon" aria-hidden="true">${_icStack}</div></div><div class="stat-num stat-num-solid">${myCalls.length}</div><div class="stat-sub">${u.tier==='rep'?'your calls':'all team'}</div></div>
-        <div class="stat-card stat-accent-purple stat-bento-sm"><div class="stat-card-top"><div><div class="stat-label">Interested Leads</div></div><div class="stat-card-icon" aria-hidden="true">${_icStar}</div></div><div class="stat-num stat-num-cyan">${interested.length}</div><div class="stat-sub">of ${myCalls.length} total</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-mid"><div class="stat-card-top"><div><div class="stat-label">Follow-ups (7d)</div></div><div class="stat-card-icon" aria-hidden="true">${_icCal}</div></div><div class="stat-num stat-num-solid">${fueDue.length}</div><div class="stat-sub">due this week</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-xs"><div class="stat-card-top"><div><div class="stat-label">Prospects</div></div><div class="stat-card-icon" aria-hidden="true">${_icUsers}</div></div><div class="stat-num stat-num-cyan">${myProspects.length}</div><div class="stat-sub">${u.tier==='rep'?'assigned to you':'total prospects'}</div></div>
+        <div class="stat-card stat-accent-purple stat-bento-hero"><div class="stat-card-top"><div><div class="stat-label">Calls Today</div></div><div class="stat-card-icon" aria-hidden="true">${_icPhone}</div></div><div class="stat-num"><span class="stat-num-value">${todayCalls.length}</span></div><div class="stat-sub">as of ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-side"><div class="stat-card-top"><div><div class="stat-label">Total Calls</div></div><div class="stat-card-icon" aria-hidden="true">${_icStack}</div></div><div class="stat-num stat-num-solid"><span class="stat-num-value">${myCalls.length}</span></div><div class="stat-sub">${u.tier==='rep'?'your calls':'all team'}</div></div>
+        <div class="stat-card stat-accent-purple stat-bento-sm"><div class="stat-card-top"><div><div class="stat-label">Interested Leads</div></div><div class="stat-card-icon" aria-hidden="true">${_icStar}</div></div><div class="stat-num stat-num-cyan"><span class="stat-num-value">${interested.length}</span></div><div class="stat-sub">of ${myCalls.length} total</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-mid"><div class="stat-card-top"><div><div class="stat-label">Follow-ups (7d)</div></div><div class="stat-card-icon" aria-hidden="true">${_icCal}</div></div><div class="stat-num stat-num-solid"><span class="stat-num-value">${fueDue.length}</span></div><div class="stat-sub">due this week</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-xs"><div class="stat-card-top"><div><div class="stat-label">Prospects</div></div><div class="stat-card-icon" aria-hidden="true">${_icUsers}</div></div><div class="stat-num stat-num-cyan"><span class="stat-num-value">${myProspects.length}</span></div><div class="stat-sub">${u.tier==='rep'?'assigned to you':'total prospects'}</div></div>
     `;
 
     const tcc = document.getElementById('dash-today-calls');
@@ -8406,7 +8442,7 @@
     bar.innerHTML = stats.map(s => `
         <div class="ac-stat-card">
         <div class="ac-stat-label">${s.label}</div>
-        <div class="ac-stat-num ac-count-anim" data-target="${s.num}" style="background:linear-gradient(135deg,${s.color},${s.color === 'var(--cyan)' ? 'var(--purple)' : 'var(--cyan)'}); -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">0</div>
+        <div class="ac-stat-num ac-count-anim" data-target="${s.num}"><span class="stat-num-value" style="background:linear-gradient(135deg,${s.color},${s.color === 'var(--cyan)' ? 'var(--purple)' : 'var(--cyan)'});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">0</span></div>
         <div class="ac-stat-sub">${s.sub}</div>
         </div>
     `).join('');
@@ -8415,11 +8451,12 @@
     document.querySelectorAll('.ac-count-anim').forEach(el => {
         const target = parseInt(el.dataset.target, 10);
         if (isNaN(target)) return;
+        const numEl = el.querySelector('.stat-num-value') || el;
         let cur = 0;
         const step = Math.max(1, Math.ceil(target / 24));
         const t = setInterval(() => {
         cur = Math.min(cur + step, target);
-        el.textContent = cur;
+        numEl.textContent = cur;
         if (cur >= target) clearInterval(t);
         }, 40);
     });

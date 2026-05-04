@@ -204,11 +204,11 @@
     /* ── SIDEBAR — Glassy Minimal 2026 ── */
     .sidebar{
     width:var(--sidebar);
-    background:rgba(12,10,20,0.75);
-    backdrop-filter:blur(24px) saturate(1.4);
-    -webkit-backdrop-filter:blur(24px) saturate(1.4);
+    background:rgba(15,10,30,0.45);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
     border-right:1px solid rgba(168,85,247,0.12);
-    box-shadow:4px 0 32px rgba(0,0,0,0.4),inset -1px 0 0 rgba(168,85,247,0.08);
+    box-shadow:inset -1px 0 0 rgba(168,85,247,0.08);
     display:flex;
     flex-direction:column;
     padding:0;
@@ -292,7 +292,11 @@
     text-transform:uppercase;
     letter-spacing:0.06em;
     }
-    .sidebar-nav{flex:1;padding:4px 0 12px;overflow-y:auto;min-height:0;}
+    .sidebar-nav{flex:1;padding:4px 0 12px;overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:rgba(168,85,247,0.3) transparent;}
+    .sidebar-nav::-webkit-scrollbar{width:3px;}
+    .sidebar-nav::-webkit-scrollbar-track{background:transparent;}
+    .sidebar-nav::-webkit-scrollbar-thumb{background:rgba(168,85,247,0.3);border-radius:99px;}
+    .sidebar-nav::-webkit-scrollbar-thumb:hover{background:rgba(168,85,247,0.6);}
     .nav-section-label{
     font-size:10px;
     font-weight:600;
@@ -2548,91 +2552,6 @@
         }, 500);
         }
     }, 2500);
-    })();
-    </script>
-    <script>
-    (function(){
-    const canvas = document.getElementById('login-canvas');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let W, H, particles = [], animId;
-    function resize(){
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    }
-    function isLight(){ return document.body.classList.contains('light'); }
-    function Particle(){
-    this.x = Math.random() * W;
-    this.y = Math.random() * H;
-    this.r = Math.random() * 180 + 80;
-    this.vx = (Math.random() - 0.5) * 1.2;
-    this.vy = (Math.random() - 0.5) * 1.2;
-    this.hue = Math.random() > 0.5 ? 270 : 190;
-    this.alpha = Math.random() * 0.25 + 0.15;
-    }
-    Particle.prototype.update = function(){
-    this.x += this.vx;
-    this.y += this.vy;
-    if(this.x < -this.r) this.x = W + this.r;
-    if(this.x > W + this.r) this.x = -this.r;
-    if(this.y < -this.r) this.y = H + this.r;
-    if(this.y > H + this.r) this.y = -this.r;
-    };
-    Particle.prototype.draw = function(){
-    const light = isLight();
-    const alpha = light ? this.alpha * 2.5 : this.alpha;
-    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
-    grad.addColorStop(0, 'hsla('+this.hue+', 80%, '+(light?50:65)+'%, '+alpha+')');
-    grad.addColorStop(1, 'hsla('+this.hue+', 80%, '+(light?50:65)+'%, 0)');
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    };
-    function initParticles(){
-    particles = [];
-    for(let i = 0; i < 10; i++) particles.push(new Particle());
-    }
-    function loop(){
-    const light = isLight();
-    ctx.fillStyle = light ? 'rgba(240,235,255,0.15)' : 'rgba(10,10,15,0.15)';
-    ctx.fillRect(0, 0, W, H);
-    particles.forEach(function(p){ p.update(); p.draw(); });
-    animId = requestAnimationFrame(loop);
-    }
-    function startCanvas(){
-    const screen = document.getElementById('login-screen');
-    if(!screen || screen.style.display === 'none' || getComputedStyle(screen).display === 'none') return;
-    resize();
-    initParticles();
-    if(animId) cancelAnimationFrame(animId);
-    loop();
-    }
-    function stopCanvas(){
-    if(animId) cancelAnimationFrame(animId);
-    animId = null;
-    }
-    window.addEventListener('resize', resize);
-    const origShowLogin = window.showLogin;
-    window.showLogin = function(){
-    if(typeof origShowLogin === 'function') origShowLogin.apply(this, arguments);
-    setTimeout(startCanvas, 50);
-    };
-    const origShowApp = window.showApp;
-    window.showApp = function(){
-    stopCanvas();
-    if(typeof origShowApp === 'function') origShowApp.apply(this, arguments);
-    };
-    const loginScreenNode = document.getElementById('login-screen');
-    if(loginScreenNode && typeof MutationObserver !== 'undefined'){
-    new MutationObserver(function(){
-    if(loginScreenNode.style.display === 'none' || getComputedStyle(loginScreenNode).display === 'none') stopCanvas();
-    else setTimeout(startCanvas, 50);
-    }).observe(loginScreenNode, { attributes: true, attributeFilter: ['style'] });
-    }
-    if(loginScreenNode && loginScreenNode.style.display !== 'none' && getComputedStyle(loginScreenNode).display !== 'none'){
-    setTimeout(startCanvas, 100);
-    }
     })();
     </script>
 
@@ -9201,40 +9120,6 @@
     // ── All Calls v2 state vars exposed globally for goPage handler ──
     // _acInited, acLastUpdated, initAllCallsV2, acApplyFilters are used by goPage in the renders map above
 
-    // Login card mouse tilt (after DOM ready — handle late scripts where DOMContentLoaded already fired)
-    (function(){
-    function attachLoginTilt(){
-    (function(){
-    const screen = document.getElementById('login-screen');
-    const card = document.querySelector('.login-card');
-    if(!screen || !card) return;
-    screen.addEventListener('mousemove', function(e){
-        const rect = card.getBoundingClientRect();
-        const cx = rect.left + rect.width / 2;
-        const cy = rect.top + rect.height / 2;
-        const dx = e.clientX - cx;
-        const dy = e.clientY - cy;
-        const tiltX = -(dy / (window.innerHeight / 2)) * 10;
-        const tiltY = (dx / (window.innerWidth / 2)) * 10;
-        const shadowX = -tiltY * 2;
-        const shadowY = tiltX * 2;
-        card.style.transform = 'perspective(1000px) rotateX('+tiltX+'deg) rotateY('+tiltY+'deg)';
-        card.style.boxShadow = shadowX+'px '+shadowY+'px 60px rgba(0,0,0,0.45), 0 0 40px rgba(168,85,247,0.15), inset 0 1px 0 rgba(255,255,255,0.06)';
-        card.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
-    });
-    screen.addEventListener('mouseleave', function(){
-        card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg)';
-        card.style.boxShadow = '';
-        card.style.transition = 'transform 0.4s ease, box-shadow 0.4s ease';
-    });
-    })();
-    }
-    if(document.readyState === 'loading'){
-    window.addEventListener('DOMContentLoaded', attachLoginTilt);
-    } else {
-    attachLoginTilt();
-    }
-    })();
     </script>
     <script>
     if ('serviceWorker' in navigator) {

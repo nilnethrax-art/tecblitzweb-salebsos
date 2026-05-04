@@ -4826,6 +4826,7 @@
     var s = String(rep).trim();
     if(typeof USERS !== 'undefined' && USERS[s]) return s;
     var lower = s.toLowerCase();
+    if(USERS[s]) return s;
     for(var k in USERS){
         if(!USERS[k]) continue;
         if(String(k).toLowerCase() === lower) return k;

@@ -3928,112 +3928,159 @@
     // Jobs structure: jobs:{jobId: {id, createdBy(ceo), assignedToCOO, assignedToRep, prospect, company, phone, status, createdAt, updatedAt}}
     // Status: 'open' | 'inprogress' | 'won' | 'lost'
 
-    function getJobs(){ return ls('jobs')||{}; }
-    function saveJobs(jobs){ 
-    const ok = ls('jobs', jobs);
-    // Sync to cloud: convert object to array of job records
-    if(sbReady && sbClient){
-        const records = Object.values(jobs).map(j => ({...j, id: String(j.id)}));
-        if(records.length > 0) saveToCloud('jobs', records).catch(()=>{});
-    }
-    return ok;
+    function normalizeJobFromCloud(r){
+    if(!r || typeof r !== 'object') return null;
+    var jid = r.id != null ? String(r.id) : '';
+    if(!jid) return null;
+    return {
+        id: jid,
+        createdBy: r.createdBy != null ? r.createdBy : r.created_by,
+        assignedToCOO: r.assignedToCOO != null ? r.assignedToCOO : r.assigned_to_coo,
+        assignedToRep: r.assignedToRep != null ? r.assignedToRep : r.assigned_to_rep,
+        prospect: r.prospect || '',
+        company: r.company || '',
+        phone: r.phone || '',
+        notes: r.notes != null ? r.notes : '',
+        status: r.status || 'open',
+        leadId: r.leadId != null ? r.leadId : r.lead_id,
+        mockupUrl: r.mockupUrl || r.mockup_url || '',
+        createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+        updatedAt: r.updatedAt || r.updated_at || new Date().toISOString(),
+    };
     }
 
-    function createJob(prospect, company, phone, notes){
-    const jobs = getJobs();
+    async function getJobs(){
+    if(!sbReady || !sbClient){
+        return ls('jobs') || {};
+    }
+    try {
+        const res = await sbClient.from('jobs').select('*');
+        if(res.error){
+        console.warn('jobs fetch:', res.error.message);
+        return ls('jobs') || {};
+        }
+        const out = {};
+        (res.data || []).forEach(function(row){
+        const j = normalizeJobFromCloud(row);
+        if(j) out[j.id] = j;
+        });
+        return out;
+    } catch(e){
+        console.warn('jobs fetch exception', e);
+        return ls('jobs') || {};
+    }
+    }
+
+    async function createJob(prospect, company, phone, notes){
+    if(!sbReady || !sbClient){
+        console.warn('createJob: Supabase not available');
+        return null;
+    }
     const jobId = 'job_' + Date.now();
-    jobs[jobId] = {
+    const now = new Date().toISOString();
+    const row = {
         id: jobId,
         createdBy: currentUser,
         assignedToCOO: null,
         assignedToRep: null,
-        prospect,
-        company,
-        phone,
-        notes: notes||'',
+        prospect: prospect,
+        company: company,
+        phone: phone,
+        notes: notes || '',
         status: 'open',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        createdAt: now,
+        updatedAt: now,
     };
-    saveJobs(jobs);
+    const ins = await sbClient.from('jobs').insert([row]);
+    if(ins.error){
+        console.error('createJob:', ins.error.message);
+        return null;
+    }
     return jobId;
     }
 
-    function assignJobToCOO(jobId, cooUid){
-    const jobs = getJobs();
-    if(!jobs[jobId]) return false;
-    jobs[jobId].assignedToCOO = cooUid;
-    jobs[jobId].assignedToRep = null; // clear rep when reassigning to COO
-    jobs[jobId].updatedAt = new Date().toISOString();
-    return saveJobs(jobs);
+    async function assignJobToCOO(jobId, cooUid){
+    if(!sbReady || !sbClient) return false;
+    const upd = await sbClient.from('jobs').update({
+        assignedToCOO: cooUid,
+        assignedToRep: null,
+        updatedAt: new Date().toISOString(),
+    }).eq('id', String(jobId));
+    return !upd.error;
     }
 
-    function assignJobToRep(jobId, repUid){
-    const jobs = getJobs();
+    async function assignJobToRep(jobId, repUid){
+    const jobs = await getJobs();
     if(!jobs[jobId]) return false;
     const rep = USERS[repUid];
-    if(!rep || rep.tier!=='rep') return false;
+    if(!rep || rep.tier !== 'rep') return false;
     const repCOO = getRepCOO(repUid);
-    if(repCOO !== jobs[jobId].assignedToCOO) return false; // can't assign rep from different COO
-    jobs[jobId].assignedToRep = repUid;
-    jobs[jobId].status = 'inprogress';
-    jobs[jobId].updatedAt = new Date().toISOString();
-    return saveJobs(jobs);
+    if(repCOO !== jobs[jobId].assignedToCOO) return false;
+    if(!sbReady || !sbClient) return false;
+    const upd = await sbClient.from('jobs').update({
+        assignedToRep: repUid,
+        status: 'inprogress',
+        updatedAt: new Date().toISOString(),
+    }).eq('id', String(jobId));
+    return !upd.error;
     }
 
-    function updateJobStatus(jobId, status){
-    const jobs = getJobs();
-    if(!jobs[jobId]) return false;
+    async function updateJobStatus(jobId, status){
+    if(!sbReady || !sbClient) return false;
     if(!['open','inprogress','won','lost'].includes(status)) return false;
-    jobs[jobId].status = status;
-    jobs[jobId].updatedAt = new Date().toISOString();
-    return saveJobs(jobs);
+    const upd = await sbClient.from('jobs').update({
+        status: status,
+        updatedAt: new Date().toISOString(),
+    }).eq('id', String(jobId));
+    return !upd.error;
     }
 
-    function reassignJob(jobId, newCOOUid){
-    const jobs = getJobs();
-    if(!jobs[jobId]) return false;
-    jobs[jobId].assignedToCOO = newCOOUid;
-    jobs[jobId].assignedToRep = null;
-    jobs[jobId].status = 'open'; // revert to open when reassigning
-    jobs[jobId].updatedAt = new Date().toISOString();
-    return saveJobs(jobs);
+    async function reassignJob(jobId, newCOOUid){
+    if(!sbReady || !sbClient) return false;
+    const upd = await sbClient.from('jobs').update({
+        assignedToCOO: newCOOUid,
+        assignedToRep: null,
+        status: 'open',
+        updatedAt: new Date().toISOString(),
+    }).eq('id', String(jobId));
+    return !upd.error;
     }
 
-    function reassignJobToRep(jobId, newRepUid, byUID){
-    const jobs = getJobs();
+    async function reassignJobToRep(jobId, newRepUid, byUID){
+    const jobs = await getJobs();
     if(!jobs[jobId]) return false;
     const rep = USERS[newRepUid];
-    if(!rep || rep.tier!=='rep') return false;
+    if(!rep || rep.tier !== 'rep') return false;
     const repCOO = getRepCOO(newRepUid);
-    
-    // CEO can reassign anywhere, COO can only reassign within their team
     if(isCOO(byUID) && repCOO !== byUID) return false;
-    
-    jobs[jobId].assignedToRep = newRepUid;
-    jobs[jobId].status = 'inprogress';
-    jobs[jobId].updatedAt = new Date().toISOString();
-    return saveJobs(jobs);
+    if(!sbReady || !sbClient) return false;
+    const upd = await sbClient.from('jobs').update({
+        assignedToRep: newRepUid,
+        status: 'inprogress',
+        updatedAt: new Date().toISOString(),
+    }).eq('id', String(jobId));
+    return !upd.error;
     }
 
-    function getJobsForCOO(cooUid){
-    const jobs = getJobs();
+    async function getJobsForCOO(cooUid){
+    const jobs = await getJobs();
     return Object.values(jobs).filter(j => j.assignedToCOO === cooUid);
     }
 
-    function getJobsForRep(repUid){
-    const jobs = getJobs();
+    async function getJobsForRep(repUid){
+    const jobs = await getJobs();
     return Object.values(jobs).filter(j => j.assignedToRep === repUid);
     }
 
-    function getJobsForCEO(){
-    return Object.values(getJobs());
+    async function getJobsForCEO(){
+    const jobs = await getJobs();
+    return Object.values(jobs);
     }
 
-    function deleteJob(jobId){
-    const jobs = getJobs();
-    delete jobs[jobId];
-    return saveJobs(jobs);
+    async function deleteJob(jobId){
+    if(!sbReady || !sbClient) return false;
+    const del = await sbClient.from('jobs').delete().eq('id', String(jobId));
+    return !del.error;
     }
 
     const PACKAGES = {
@@ -4250,9 +4297,7 @@
         const jobsPage = document.getElementById('page-jobs');
         if(jobsPage && jobsPage.classList.contains('active')){
         if(isCEO(currentUser) || isMgmt(currentUser)){
-            jobRenderCEODash();       // re-renders jobs table
-            const inbox = document.getElementById('ceo-leads-inbox-body');
-            if(inbox) ceoInboxRender(inbox); // re-renders CEO inbox
+            if(typeof renderJobsPage === 'function') await renderJobsPage();
         }
         } else {
         // Even if Jobs page isn't open, refresh the nav badge + inbox DOM if it exists
@@ -4267,10 +4312,11 @@
     try {
         const cloudJobs = await loadFromCloud('jobs');
         if(cloudJobs && cloudJobs.length > 0){
-        const jobsObj = {};
-        cloudJobs.forEach(j => { jobsObj[j.id] = j; });
-        ls('jobs', jobsObj);
         console.log('✓ Auto-synced jobs on focus');
+        const jobsPage = document.getElementById('page-jobs');
+        if(jobsPage && jobsPage.classList.contains('active') && typeof renderJobsPage === 'function'){
+            await renderJobsPage();
+        }
         }
     } catch(e){}
     // closed_deals skipped — table not yet created in Supabase
@@ -4433,11 +4479,7 @@
     const renders = {
         dashboard: renderDashboard,
         prospects: renderProspects,
-        jobs: ()=>{
-        if(isCEO(currentUser) || isMgmt(currentUser)) jobRenderCEODash();
-        else if(isCOO(currentUser)) jobRenderCOODash();
-        else jobRenderRepDash();
-        },
+        jobs: renderJobsPage,
         pipeline: renderPipeline,
         mycalls: renderMyCalls,
         followups: renderFollowups,
@@ -4447,7 +4489,10 @@
         settings: initSettingsPage,
         aireport: ()=>{document.getElementById('report-date-label').textContent='Report for '+new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});}
     };
-    if(renders[id]) renders[id]();
+    if(renders[id]){
+        const out = renders[id]();
+        if(out && typeof out.catch === 'function') out.catch(function(e){ console.error(e); });
+    }
     }
 
     // ════════════════════════════════════════
@@ -4578,7 +4623,7 @@
         type: obj.type,
         area: obj.area,
         phone: obj.phone,
-        assignedTo: obj.assignedTo,
+        assignedto: obj.assignedTo,
         pkg: obj.pkg,
         pain: obj.pain,
         script: obj.script,
@@ -5569,13 +5614,13 @@
     document.getElementById('job-finish-details').textContent = `${job.prospect} — ${job.company}`;
     document.getElementById('job-finish-modal').classList.add('open');
     }
-    function jobFinishConfirm(status){
+    async function jobFinishConfirm(status){
     closeModal('job-finish-modal');
     if(!_jobFinishCurrentId) return;
-    if(!updateJobStatus(_jobFinishCurrentId, status)){ showToast('Failed to update status','error'); return; }
+    if(!await updateJobStatus(_jobFinishCurrentId, status)){ showToast('Failed to update status','error'); return; }
     showToast(`Job marked as ${status}!`, status === 'won' ? 'success' : '');
     _jobFinishCurrentId = null;
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     }
 
     // init date on dash
@@ -6989,7 +7034,7 @@
     document.getElementById('job-create-coo').value = '';
     }
 
-    function jobCreateSave(){
+    async function jobCreateSave(){
     const prospect = document.getElementById('job-create-prospect').value.trim();
     const company = document.getElementById('job-create-company').value.trim();
     const phone = document.getElementById('job-create-phone').value.trim();
@@ -7000,17 +7045,18 @@
     if(!cooUid){ showToast('Please select a COO','error'); return; }
     if(!USERS[cooUid] || !isCOO(cooUid)){ showToast('Invalid COO selection','error'); return; }
 
-    const jobId = createJob(prospect, company, phone, notes);
-    assignJobToCOO(jobId, cooUid);
+    const jobId = await createJob(prospect, company, phone, notes);
+    if(!jobId){ showToast('Failed to create job','error'); return; }
+    if(!await assignJobToCOO(jobId, cooUid)){ showToast('Failed to assign COO','error'); return; }
 
     showToast(`Job created for ${USERS[cooUid].name}!`,'success');
     jobCloseModal('job-create-modal');
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     }
 
-    function jobOpenAssignModal(jobId){
+    async function jobOpenAssignModal(jobId){
     if(!isCOO(currentUser)){ showToast('COO access required','error'); return; }
-    const jobs = getJobs();
+    const jobs = await getJobs();
     const job = jobs[jobId];
     if(!job){ showToast('Job not found','error'); return; }
     if(job.assignedToCOO !== currentUser){ showToast('You can only assign your own jobs','error'); return; }
@@ -7032,7 +7078,7 @@
     document.getElementById('job-assign-modal').classList.add('open');
     }
 
-    function jobAssignSave(){
+    async function jobAssignSave(){
     const jobId = window.jobAssignCurrentJobId;
     const repUid = document.getElementById('job-assign-rep').value;
 
@@ -7041,15 +7087,15 @@
     const rep = USERS[repUid];
     if(!rep || rep.tier !== 'rep'){ showToast('Invalid rep selection','error'); return; }
     
-    if(!assignJobToRep(jobId, repUid)){ showToast('Failed to assign job','error'); return; }
+    if(!await assignJobToRep(jobId, repUid)){ showToast('Failed to assign job','error'); return; }
 
     showToast(`Job assigned to ${rep.name}!`,'success');
     jobCloseModal('job-assign-modal');
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     }
 
-    function jobOpenReassignModal(jobId){
-    const jobs = getJobs();
+    async function jobOpenReassignModal(jobId){
+    const jobs = await getJobs();
     const job = jobs[jobId];
     if(!job){ showToast('Job not found','error'); return; }
 
@@ -7109,7 +7155,7 @@
     document.getElementById('job-reassign-modal').classList.add('open');
     }
 
-    function jobReassignSave(){
+    async function jobReassignSave(){
     const jobId = window.jobReassignCurrentJobId;
     const targetUid = document.getElementById('job-reassign-to').value;
 
@@ -7120,42 +7166,43 @@
 
     let ok = false;
     if((isCEO(currentUser) || isMgmt(currentUser)) && isCOO(targetUid)){
-        ok = reassignJob(jobId, targetUid);
+        ok = await reassignJob(jobId, targetUid);
     } else if((isCEO(currentUser) || isMgmt(currentUser)) && target.tier === 'rep'){
         // CEO directly reassigning to a rep — update COO assignment too
         const repCOO = getRepCOO(targetUid);
         if(repCOO){
-        const jobs = getJobs();
-        if(jobs[jobId]){
-            jobs[jobId].assignedToCOO = repCOO;
-            jobs[jobId].assignedToRep = targetUid;
-            jobs[jobId].status = 'inprogress';
-            jobs[jobId].updatedAt = new Date().toISOString();
-            ok = saveJobs(jobs);
+        if(sbReady && sbClient){
+            const upd = await sbClient.from('jobs').update({
+            assignedToCOO: repCOO,
+            assignedToRep: targetUid,
+            status: 'inprogress',
+            updatedAt: new Date().toISOString(),
+            }).eq('id', String(jobId));
+            ok = !upd.error;
         }
         } else {
-        ok = reassignJobToRep(jobId, targetUid, currentUser);
+        ok = await reassignJobToRep(jobId, targetUid, currentUser);
         }
     } else if(isCOO(currentUser) && target.tier === 'rep'){
-        ok = reassignJobToRep(jobId, targetUid, currentUser);
+        ok = await reassignJobToRep(jobId, targetUid, currentUser);
     }
 
     if(!ok){ showToast('Failed to reassign job','error'); return; }
 
     showToast(`Job reassigned to ${target.name}!`,'success');
     jobCloseModal('job-reassign-modal');
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     }
 
-    function jobRefreshDashboard(){
+    async function jobRefreshDashboard(){
     if(isCEO(currentUser) || isMgmt(currentUser)){
-        if(typeof jobRenderCEODash === 'function') jobRenderCEODash();
+        if(typeof jobRenderCEODash === 'function') await jobRenderCEODash();
     }
     if(isCOO(currentUser)){
-        if(typeof jobRenderCOODash === 'function') jobRenderCOODash();
+        if(typeof jobRenderCOODash === 'function') await jobRenderCOODash();
     }
     if(USERS[currentUser]?.tier === 'rep'){
-        if(typeof jobRenderRepDash === 'function') jobRenderRepDash();
+        if(typeof jobRenderRepDash === 'function') await jobRenderRepDash();
     }
     }
 
@@ -7269,7 +7316,7 @@
         }
         });
         // Load interested leads from cloud (best-effort — table may not exist)
-        sbClient.from('interested_leads').select('*').then(({ data, error }) => {
+        sbClient.from('interested_leads').select('*').then(async ({ data, error }) => {
         if(error){ console.error('❌ interested_leads load error:', error.message, '| code:', error.code); return; }
         if(data){
             // Normalise Supabase rows → internal lead shape (guards against column-name drift)
@@ -7300,19 +7347,20 @@
             const pp = document.getElementById('page-pipeline');
             if(pp && pp.classList.contains('active')) renderPipeline();
             const jp = document.getElementById('page-jobs');
-            if(jp && jp.classList.contains('active')){
-            if(isCEO(currentUser) || isMgmt(currentUser)) jobRenderCEODash();
+            if(jp && jp.classList.contains('active') && typeof renderJobsPage === 'function'){
+            await renderJobsPage();
             }
         }
         }).catch((e)=>{ console.error('❌ interested_leads fetch exception:', e); });
-        // Load jobs from cloud
-        sbClient.from('jobs').select('*').then(({ data, error }) => {
+        // Load jobs from cloud (getJobs() reads Supabase when online)
+        sbClient.from('jobs').select('*').then(async function(res){
+        const data = res.data; const error = res.error;
         if(!error && data && data.length > 0){
-            // Convert array back to object keyed by id
-            const jobsObj = {};
-            data.forEach(j => { jobsObj[j.id] = j; });
-            ls('jobs', jobsObj);
             console.log('✓ Loaded', data.length, 'jobs from cloud');
+            const jp = document.getElementById('page-jobs');
+            if(jp && jp.classList.contains('active') && typeof renderJobsPage === 'function'){
+            await renderJobsPage();
+            }
         }
         }).catch(()=>{ /* jobs table may not exist yet */ });
         // closed_deals table not yet created in Supabase — skip fetch entirely to avoid 404
@@ -7389,7 +7437,7 @@
         }
         const jobsPage = document.getElementById('page-jobs');
         if(jobsPage && jobsPage.classList.contains('active')){
-            if(isCEO(currentUser) || isMgmt(currentUser)) jobRenderCEODash();
+            if(typeof renderJobsPage === 'function') renderJobsPage().catch(function(e){ console.error(e); });
         } else {
             // Keep the badge + inbox DOM current even when Jobs tab is not open
             const inbox = document.getElementById('ceo-leads-inbox-body');
@@ -7406,63 +7454,15 @@
     // JOB RENDERING FUNCTIONS
     // ════════════════════════════════════════
 
-    function jobRenderCEODash(){
-    const jobs = getJobsForCEO();
-    const content = document.getElementById('job-dashboard-content');
-    
-    if(!jobs.length){
-        content.innerHTML = '<div class="empty-state" style="text-align:center;padding:40px;color:var(--text-2);">No jobs yet. Create one to get started.</div>';
-        return;
+    async function renderJobsPage(){
+    await getJobs();
+    if(isCEO(currentUser) || isMgmt(currentUser)){ await jobRenderCEODash(); }
+    else if(isCOO(currentUser)){ await jobRenderCOODash(); }
+    else { await jobRenderRepDash(); }
     }
 
-    // Group by status
-    const byStatus = { open: [], inprogress: [], won: [], lost: [] };
-    jobs.forEach(j => byStatus[j.status].push(j));
-
-    let html = '';
-    Object.entries(byStatus).forEach(([status, statusJobs]) => {
-        if(!statusJobs.length) return;
-        // Sort newest first
-        statusJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        const statusLabel = { open:'Open', inprogress:'In Progress', won:'Won', lost:'Lost' }[status];
-        const statusColor = { open:'--text-2', inprogress:'--amber', won:'--green', lost:'--red' }[status];
-        
-        html += `<div class="card">
-        <h3 style="margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-            <span style="width:8px;height:8px;border-radius:50%;background:var(${statusColor});"></span>
-            ${statusLabel} (${statusJobs.length})
-        </h3>
-        <div style="overflow-x:auto;">
-            <table style="width:100%;font-size:13px;">
-            <thead style="border-bottom:1px solid var(--border);">
-                <tr><th style="text-align:left;padding:8px;">Prospect</th><th style="text-align:left;padding:8px;">Company</th><th style="text-align:left;padding:8px;">COO</th><th style="text-align:left;padding:8px;">Rep</th><th style="text-align:left;padding:8px;">Phone</th><th style="text-align:center;padding:8px;">Actions</th></tr>
-            </thead>
-            <tbody>`;
-        
-        statusJobs.forEach(j => {
-        const coo = USERS[j.assignedToCOO]?.name || '—';
-        const rep = j.assignedToRep ? USERS[j.assignedToRep]?.name : '—';
-        html += `<tr style="border-bottom:1px solid var(--border);">
-            <td style="padding:8px;"><strong>${j.prospect}</strong></td>
-            <td style="padding:8px;">${j.company}</td>
-            <td style="padding:8px;">${coo}</td>
-            <td style="padding:8px;">${rep}</td>
-            <td style="padding:8px;"><a href="tel:${j.phone}" style="color:var(--purple);text-decoration:none;">${j.phone}</a></td>
-            <td style="padding:8px;text-align:center;">
-            <button class="tm-edit-btn" onclick="jobOpenReassignModal('${j.id}')" style="font-size:11px;padding:4px 8px;">Reassign</button>
-            ${status !== 'won' && status !== 'lost' ? `<button class="tm-edit-btn" onclick="jobUpdateStatus('${j.id}', '${status === 'open' ? 'inprogress' : 'won'}')" style="font-size:11px;padding:4px 8px;margin-left:4px;">Mark ${status === 'open' ? 'In Progress' : 'Won'}</button>` : ''}
-            </td>
-        </tr>`;
-        });
-        
-        html += `</tbody></table></div></div>`;
-    });
-
-    content.innerHTML = html;
-    }
-
-    function jobRenderCOODash(){
-    const jobs = getJobsForCOO(currentUser);
+    async function jobRenderCOODash(){
+    const jobs = await getJobsForCOO(currentUser);
     const content = document.getElementById('job-dashboard-content');
     
     if(!jobs.length){
@@ -7514,8 +7514,8 @@
     content.innerHTML = html;
     }
 
-    function jobRenderRepDash(){
-    const jobs = getJobsForRep(currentUser);
+    async function jobRenderRepDash(){
+    const jobs = await getJobsForRep(currentUser);
     const content = document.getElementById('job-dashboard-content');
     
     if(!jobs.length){
@@ -7565,8 +7565,8 @@
     content.innerHTML = html;
     }
 
-    function jobUpdateStatus(jobId, newStatus){
-    const jobs = getJobs();
+    async function jobUpdateStatus(jobId, newStatus){
+    const jobs = await getJobs();
     const job = jobs[jobId];
     if(!job){ showToast('Job not found','error'); return; }
     const canManage = isCEO(currentUser) || isMgmt(currentUser);
@@ -7576,13 +7576,13 @@
         showToast('Permission denied','error');
         return;
     }
-    if(!updateJobStatus(jobId, newStatus)){ showToast('Failed to update status','error'); return; }
+    if(!await updateJobStatus(jobId, newStatus)){ showToast('Failed to update status','error'); return; }
     showToast('Job status updated!','success');
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     }
 
-    function jobShowFinishModal(jobId){
-    const jobs = getJobs();
+    async function jobShowFinishModal(jobId){
+    const jobs = await getJobs();
     const job = jobs[jobId];
     if(!job){ showToast('Job not found','error'); return; }
     
@@ -8151,15 +8151,14 @@
     }).join('');
     }
 
-    // Override jobRenderCEODash to include the inbox
-    const _origJobRenderCEODash = typeof jobRenderCEODash !== 'undefined' ? jobRenderCEODash : null;
-    function jobRenderCEODash(){
+    // CEO jobs dashboard + interested-leads inbox
+    async function jobRenderCEODash(){
     // Render the inbox section
     const inbox = document.getElementById('ceo-leads-inbox-body');
     if(inbox) ceoInboxRender(inbox);
 
     // Render the jobs table (same as before)
-    const jobs = getJobsForCEO();
+    const jobs = await getJobsForCEO();
     const content = document.getElementById('job-dashboard-content');
     if(!content) return;
     
@@ -8255,7 +8254,7 @@
 
     function isCOO_uid(u){ return u.tier === 'coo' || (u.tier === 'ceo' && u.role !== 'Director / CEO'); }
 
-    function lttSave(){
+    async function lttSave(){
     const leadId   = document.getElementById('ltt-lead-id').value;
     const company  = document.getElementById('ltt-company').value.trim();
     const prospect = document.getElementById('ltt-prospect').value.trim();
@@ -8271,15 +8270,17 @@
 
     // Create the job
     const jobNotes = [notes, pkg ? 'Package: ' + pkg : '', mockupUrl ? 'Mockup: ' + mockupUrl : ''].filter(Boolean).join('\n');
-    const jobId = createJob(prospect || company, company, phone, jobNotes);
-    assignJobToCOO(jobId, cooUid);
+    const jobId = await createJob(prospect || company, company, phone, jobNotes);
+    if(!jobId){ showToast('Failed to create job ticket','error'); return; }
+    if(!await assignJobToCOO(jobId, cooUid)){ showToast('Failed to assign COO','error'); return; }
 
-    // Link lead ↔ job
-    const jobs = getJobs();
-    if(jobs[jobId]){
-        jobs[jobId].leadId = leadId;
-        jobs[jobId].mockupUrl = mockupUrl;
-        saveJobs(jobs);
+    // Link lead ↔ job (persist on job row)
+    if(sbReady && sbClient){
+        await sbClient.from('jobs').update({
+        leadId: leadId,
+        mockupUrl: mockupUrl || null,
+        updatedAt: new Date().toISOString(),
+        }).eq('id', String(jobId));
     }
 
     // Update lead status to 'pending' if still 'new', and mark jobId
@@ -8298,7 +8299,7 @@
 
     document.getElementById('lead-to-ticket-modal').classList.remove('open');
     showToast(`Job Ticket created for ${company} → ${USERS[cooUid]?.name}`, 'success');
-    jobRefreshDashboard();
+    await jobRefreshDashboard();
     updatePipelineNavBadge();
     }
 
@@ -8313,7 +8314,7 @@
     ls(key, log);
     }
 
-    function showLeadHistory(leadId){
+    async function showLeadHistory(leadId){
     const leads = getLeads();
     const lead = leads.find(l => l.id === leadId);
     if(!lead){ showToast('Lead not found','error'); return; }
@@ -8346,7 +8347,7 @@
 
     // Step 3: Job ticket created (if any)
     if(lead.jobId){
-        const jobs = getJobs();
+        const jobs = await getJobs();
         const job = jobs[lead.jobId];
         steps.push({
         icon: '◇',

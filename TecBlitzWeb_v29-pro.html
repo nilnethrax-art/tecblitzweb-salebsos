@@ -4158,7 +4158,7 @@
     'Monthly Maintenance – Rs. 10,000/mo': 10000,
     };
 
-    let currentUser = null;
+    let currentUser = sessionStorage.getItem('currentUser') || null;
     let pinBuffer = '';
     let pinConfirmBuffer = '';
     let settingPin = false;
@@ -4482,6 +4482,7 @@
         }
         const emailLocal = user.email ? user.email.split('@')[0] : '';
         currentUser = USERS[user.name] ? user.name : (canonicalRepKey(user.name) || canonicalRepKey(emailLocal));
+        sessionStorage.setItem('currentUser', currentUser);
         console.log('currentUser resolved to:', currentUser, '| from name:', user.name, '| emailLocal:', emailLocal);
     
         sendLoginEmailNotification(user);

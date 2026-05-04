@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TecBlitzWeb Sales OS</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%237c3aed'/><text y='.9em' font-size='80' x='10'>⚡</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
@@ -3979,7 +3980,7 @@
     "Ramesh":   { pin:"8585", role:"COO",    email:"ramesh@tecblitzweb.com" },
     "Fasith":   { pin:"6868", role:"Rep",    email:"fasith@tecblitzweb.com" },
     "Shehan":   { pin:"1212", role:"Rep",    email:"shehan@tecblitzweb.com" },
-    "Chamindu": { pin:"2626", role:"Rep",    email:"chamindu@tecblitzweb.com" },
+    "chamindu": { pin:"2626", role:"rep",    email:"chamindu@tecblitzweb.com", name: "Chamindu" },
     "SalesR01": { pin:"7878", role:"Sales",  email:"salesr01@tecblitzweb.com" },
     "SalesR02": { pin:"8787", role:"Sales",  email:"salesr02@tecblitzweb.com" },
     "SalesR03": { pin:"9898", role:"Sales",  email:"salesr03@tecblitzweb.com" },
@@ -3995,7 +3996,7 @@
     };
 
     Object.entries(USERS).forEach(([k, v]) => {
-    v.name = k;
+    v.name = v.name || k;
     v.handle = '@' + String(k).toLowerCase();
     if(v.role === 'CEO' || v.role === 'Co-CEO') v.tier = 'ceo';
     else if(v.role === 'COO') v.tier = 'coo';
@@ -4479,12 +4480,17 @@
             role: 'User'
         };
         }
-        currentUser = user.name;
+        currentUser = canonicalRepKey(user.name);
     
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);
 
         setLoading(false);
+        if (!USERS[user.id] && !USERS[user.email?.split('@')[0]] && !USERS[currentUser]) {
+            console.error('User profile not found in USERS map:', user.email);
+            showError('Account not configured. Contact admin.');
+            return;
+        }
         launchApp(user.name, user.role);
         if(typeof goPage === 'function') goPage('dashboard');
     } catch(e){

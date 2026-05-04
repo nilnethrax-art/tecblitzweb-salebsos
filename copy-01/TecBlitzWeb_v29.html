@@ -4,14 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TecBlitzWeb Sales OS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Sales OS">
-    <meta name="theme-color" content="#A855F7">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- EmailJS removed: login notifications are console-only (no template/network errors). -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./config.js"></script>
@@ -82,98 +75,18 @@
         pointer-events:none;
         z-index:0;
     }
-    #app{position:relative;z-index:1;}
+    #app, #login-screen { position:relative; z-index:1; }
     button{cursor:pointer;font-family:'Outfit',sans-serif;}
     button svg, [onclick] svg { pointer-events: none; }
     input,select,textarea{font-family:'Outfit',sans-serif;}
 
     /* ── LOGIN ── */
-    #login-screen{
-    display:flex;
-    min-height:100vh;
-    width:100vw;
-    align-items:center;
-    justify-content:center;
-    position:fixed;
-    top:0;left:0;
-    overflow:hidden;
-    background:#0a0a0f;
-    }
-    #login-screen::before{
-    content:'';
-    position:absolute;
-    inset:-50%;
-    width:200%;
-    height:200%;
-    z-index:0;
-    pointer-events:none;
-    background:
-    radial-gradient(ellipse 70% 60% at 80% 20%,rgba(168,85,247,0.45) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 70% at 10% 80%,rgba(34,211,238,0.3) 0%,transparent 60%),
-    radial-gradient(ellipse 50% 50% at 50% 50%,rgba(99,102,241,0.2) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 40% at 20% 20%,rgba(168,85,247,0.2) 0%,transparent 60%);
-    animation:fullWalk 12s ease-in-out infinite;
-    }
-    @keyframes fullWalk{
-    0%{transform:translate(0%,0%) rotate(0deg) scale(1);}
-    20%{transform:translate(-8%,6%) rotate(3deg) scale(1.05);}
-    40%{transform:translate(6%,-8%) rotate(-2deg) scale(0.97);}
-    60%{transform:translate(-5%,-5%) rotate(4deg) scale(1.08);}
-    80%{transform:translate(8%,4%) rotate(-3deg) scale(0.96);}
-    100%{transform:translate(0%,0%) rotate(0deg) scale(1);}
-    }
-    #login-screen::after{
-    content:'';
-    position:absolute;
-    inset:0;
-    z-index:0;
-    pointer-events:none;
-    opacity:0.08;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='turbulence' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size:200px 200px;
-    mix-blend-mode:overlay;
-    }
-    body.light #login-screen{
-    background:#f0ebff;
-    }
-    body.light #login-screen::before{
-    background:
-    radial-gradient(ellipse 70% 60% at 80% 20%,rgba(124,58,237,0.35) 0%,transparent 60%),
-    radial-gradient(ellipse 60% 70% at 10% 80%,rgba(34,211,238,0.25) 0%,transparent 60%),
-    radial-gradient(ellipse 50% 50% at 50% 50%,rgba(99,102,241,0.2) 0%,transparent 60%),
-    radial-gradient(ellipse 40% 40% at 20% 20%,rgba(168,85,247,0.2) 0%,transparent 60%);
-    }
-    #login-canvas{
-    position:absolute;
-    inset:0;
-    width:100%;
-    height:100%;
-    z-index:0;
-    pointer-events:none;
-    }
-    .login-left{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    padding:40px;
-    position:relative;
-    overflow:hidden;
-    z-index:1;
-    }
-    .login-card{
-    position:relative;
-    z-index:1;
-    width:360px;
-    background:rgba(17,17,24,0.55);
-    backdrop-filter:blur(28px) saturate(1.2);
-    -webkit-backdrop-filter:blur(28px) saturate(1.2);
-    border:1px solid rgba(168,85,247,0.18);
-    border-radius:22px;
-    padding:36px;
-    box-shadow:0 24px 64px rgba(0,0,0,0.55),0 0 48px rgba(168,85,247,0.08),inset 0 1px 0 rgba(255,255,255,0.06);
-    transform-style:preserve-3d;
-    }
+    #login-screen{display:flex;min-height:100vh;align-items:stretch;}
+    .login-left{flex:1;display:flex;align-items:center;justify-content:center;background:transparent;padding:40px;}
+    .login-right{width:360px;background:linear-gradient(160deg,rgba(168,85,247,0.25) 0%,rgba(99,102,241,0.2) 50%,rgba(34,211,238,0.15) 100%);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-left:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:40px;}
+    .login-right-text{color:rgba(255,255,255,0.65);font-family:'Syne',sans-serif;font-size:13px;text-align:center;line-height:1.6;}
+    .login-right h2{color:#fff;font-family:'Syne',sans-serif;font-size:22px;font-weight:700;text-align:center;}
+    .login-card{width:360px;background:rgba(17,17,24,0.55);backdrop-filter:blur(28px) saturate(1.2);-webkit-backdrop-filter:blur(28px) saturate(1.2);border:1px solid rgba(168,85,247,0.18);border-radius:22px;padding:36px;box-shadow:0 24px 64px rgba(0,0,0,0.55),0 0 48px rgba(168,85,247,0.08),inset 0 1px 0 rgba(255,255,255,0.06);transform-style:preserve-3d;}
     .login-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
     .login-logo svg{width:36px;height:36px;}
     .login-logo span{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);}
@@ -201,221 +114,29 @@
     #app{display:none;min-height:100vh;}
     .app-layout{display:flex;min-height:100vh;}
 
-    /* ── SIDEBAR — Glassy Minimal 2026 ── */
-    .sidebar{
-    width:var(--sidebar);
-    background:rgba(12,10,20,0.75);
-    backdrop-filter:blur(24px) saturate(1.4);
-    -webkit-backdrop-filter:blur(24px) saturate(1.4);
-    border-right:1px solid rgba(168,85,247,0.12);
-    box-shadow:4px 0 32px rgba(0,0,0,0.4),inset -1px 0 0 rgba(168,85,247,0.08);
-    display:flex;
-    flex-direction:column;
-    padding:0;
-    position:fixed;
-    top:0;left:0;bottom:0;
-    z-index:100;
-    transition:width 0.3s ease;
-    }
-    .sidebar-brand{
-    padding:24px 20px 20px;
-    border-bottom:1px solid rgba(255,255,255,0.05);
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    }
-    .sidebar-brand .sidebar-brand-top{display:flex;align-items:center;gap:10px;}
-    .sidebar-brand .brand-name{
-    font-family:'Syne',sans-serif;
-    font-size:18px;
-    font-weight:800;
-    color:#fff;
-    letter-spacing:-0.02em;
-    }
-    .sidebar-brand .brand-name span{color:#A855F7;}
-    .sidebar-brand .brand-sub{
-    font-size:10px;
-    font-weight:500;
-    letter-spacing:0.12em;
-    text-transform:uppercase;
-    color:rgba(168,85,247,0.6);
-    }
-    .sidebar-user{
-    padding:16px 20px;
-    display:flex;
-    align-items:center;
-    gap:12px;
-    border-bottom:1px solid rgba(255,255,255,0.05);
-    margin-bottom:8px;
-    }
-    .sidebar-avatar{
-    width:36px;
-    height:36px;
-    border-radius:50%;
-    background:linear-gradient(135deg,#A855F7,#7C3AED);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-family:'Syne',sans-serif;
-    font-size:14px;
-    font-weight:700;
-    color:#fff;
-    position:relative;
-    flex-shrink:0;
-    box-shadow:0 0 0 2px rgba(168,85,247,0.4),0 0 12px rgba(168,85,247,0.3);
-    overflow:hidden;
-    }
-    .sidebar-avatar::after{
-    content:'';
-    position:absolute;
-    bottom:1px;right:1px;
-    width:8px;height:8px;
-    border-radius:50%;
-    background:#34D399;
-    border:2px solid #0A0A14;
-    pointer-events:none;
-    z-index:2;
-    }
-    .sidebar-user-info{flex:1;min-width:0;}
-    .sidebar-user-info .user-name{
-    font-size:13px;
-    font-weight:600;
-    color:#fff;
-    font-family:'Syne',sans-serif;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    }
-    .sidebar-user-info .user-role{
-    font-size:11px;
-    color:rgba(255,255,255,0.35);
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    }
-    .sidebar-nav{flex:1;padding:4px 0 12px;overflow-y:auto;min-height:0;}
-    .nav-section-label{
-    font-size:10px;
-    font-weight:600;
-    letter-spacing:0.14em;
-    text-transform:uppercase;
-    color:rgba(255,255,255,0.2);
-    padding:16px 20px 6px;
-    display:flex;
-    align-items:center;
-    gap:8px;
-    }
-    .nav-section-label::after{
-    content:'';
-    flex:1;
-    height:1px;
-    background:rgba(255,255,255,0.06);
-    }
-    .nav-item{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 20px;
-    margin:2px 10px;
-    border-radius:10px;
-    font-size:13px;
-    font-weight:500;
-    color:rgba(255,255,255,0.45);
-    cursor:pointer;
-    position:relative;
-    transition:all 0.2s ease;
-    border:1px solid transparent;
-    text-decoration:none;
-    min-height:var(--touch-min);
-    }
-    .nav-item::before{
-    content:'';
-    position:absolute;
-    left:0;top:50%;
-    transform:translateY(-50%) scaleY(0);
-    width:3px;
-    height:60%;
-    background:#A855F7;
-    border-radius:0 3px 3px 0;
-    transition:transform 0.2s ease,opacity 0.2s ease;
-    opacity:0;
-    }
-    .nav-item:hover{
-    color:rgba(255,255,255,0.85);
-    background:rgba(168,85,247,0.08);
-    border-color:rgba(168,85,247,0.12);
-    }
-    .nav-item:hover::before{
-    transform:translateY(-50%) scaleY(1);
-    opacity:1;
-    }
-    .nav-item.active{
-    color:#fff;
-    background:linear-gradient(135deg,rgba(168,85,247,0.18),rgba(124,58,237,0.12));
-    border-color:rgba(168,85,247,0.25);
-    font-weight:600;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 4px 12px rgba(168,85,247,0.1);
-    }
-    .nav-item.active::before{
-    transform:translateY(-50%) scaleY(1);
-    opacity:1;
-    background:#A855F7;
-    box-shadow:0 0 8px rgba(168,85,247,0.6);
-    }
-    .nav-item svg{
-    width:16px;
-    height:16px;
-    flex-shrink:0;
-    opacity:0.7;
-    transition:opacity 0.2s;
-    pointer-events:none;
-    }
-    .nav-item.active svg,.nav-item:hover svg{opacity:1;}
-    .nav-badge{
-    margin-left:auto;
-    background:rgba(168,85,247,0.2);
-    border:1px solid rgba(168,85,247,0.35);
-    color:#d8b4fe;
-    font-size:10px;
-    font-weight:700;
-    padding:2px 7px;
-    border-radius:100px;
-    font-family:'Syne',sans-serif;
-    min-width:18px;
-    text-align:center;
-    flex-shrink:0;
-    }
-    .nav-item .nav-badge.nav-badge-ceo{
-    background:rgba(244,63,94,0.2);
-    border-color:rgba(244,63,94,0.45);
-    color:#fecaca;
-    }
-    .nav-item .nav-badge.badge-green{
-    background:rgba(52,211,153,0.2);
-    border-color:rgba(52,211,153,0.4);
-    color:#6ee7b7;
-    }
-    .sidebar-bottom{
-    margin-top:auto;
-    padding:12px 10px;
-    border-top:1px solid rgba(255,255,255,0.05);
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    }
-    .sidebar-bottom .logout-btn{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    color:rgba(255,255,255,0.45);
-    font-size:12px;
-    cursor:pointer;
-    padding:10px 12px;
-    margin:2px 10px;
-    border-radius:10px;
-    transition:color .15s,background .15s;
-    }
-    .sidebar-bottom .logout-btn svg{pointer-events:none;}
-    .sidebar-bottom .logout-btn:hover{color:var(--red);background:rgba(244,63,94,0.08);}
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar);background:rgba(17,17,24,0.72);backdrop-filter:blur(28px) saturate(1.35);-webkit-backdrop-filter:blur(28px) saturate(1.35);border-right:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;box-shadow:4px 0 40px rgba(0,0,0,0.55),inset -1px 0 0 rgba(168,85,247,0.06);}
+    .sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+    .sidebar-logo span{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--text);}
+    .sidebar-logo span b{color:var(--purple);text-shadow:0 0 12px var(--glow-purple);}
+    .sidebar-logo small{display:block;font-size:10px;color:var(--text-2);font-weight:500;margin-top:1px;letter-spacing:.3px;}
+    .sidebar-user{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+    .user-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;box-shadow:0 0 10px var(--glow-purple);}
+    .user-info{flex:1;min-width:0;}
+    .user-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .user-role{font-size:10px;color:var(--text-2);}
+    .sidebar-nav{flex:1;padding:12px 0;overflow-y:auto;}
+    .nav-section{padding:6px 18px 4px;font-size:10px;font-family:'Syne',sans-serif;font-weight:600;color:rgba(148,163,184,0.5);text-transform:uppercase;letter-spacing:.8px;}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:12px 16px;min-height:var(--touch-min);color:var(--text-2);font-size:14px;font-weight:500;cursor:pointer;transition:color var(--t-fast),background var(--t-fast),border-color var(--t-fast),box-shadow var(--t-fast),transform var(--t-fast);border-left:3px solid transparent;margin:3px 0;border-radius:0 12px 12px 0;margin-right:10px;}
+    .nav-item svg{width:20px;height:20px;flex-shrink:0;pointer-events:none;opacity:0.95;transition:opacity var(--t-fast),filter var(--t-fast);}
+    .nav-item:hover{color:var(--text);background:rgba(168,85,247,0.1);border-left-color:rgba(168,85,247,0.5);box-shadow:0 0 24px rgba(168,85,247,0.08);}
+    .nav-item:hover svg{filter:drop-shadow(0 0 6px rgba(168,85,247,0.4));}
+    .nav-item.active{color:#fff;background:linear-gradient(90deg,rgba(168,85,247,0.32),rgba(34,211,238,0.1));border-left-color:var(--purple-mid);font-weight:700;text-shadow:0 0 16px rgba(168,85,247,0.55);box-shadow:inset 0 0 0 1px rgba(168,85,247,0.28),0 0 28px rgba(168,85,247,0.15);}
+    .nav-item.active svg{opacity:1;filter:drop-shadow(0 0 8px rgba(34,211,238,0.45));}
+    .sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);}
+    .logout-btn{display:flex;align-items:center;gap:8px;color:var(--text-2);font-size:12px;cursor:pointer;padding:6px 0;transition:color .15s;}
+    .logout-btn svg{pointer-events:none;}
+    .logout-btn:hover{color:var(--red);}
 
     /* ── CEO LEADS INBOX ── */
     .ceo-inbox { margin-bottom: 28px; }
@@ -515,6 +236,7 @@
         --white: rgba(255,255,255,0.06);
     }
     body.dark{ background:var(--bg-deep); color:var(--text); }
+    body.dark .sidebar{ background:rgba(17,17,24,0.88); border-color:rgba(255,255,255,0.06); box-shadow:4px 0 40px rgba(0,0,0,0.6),inset -1px 0 0 rgba(168,85,247,0.08);}
     body.dark .main-content{ background:transparent; }
     body.dark .card, body.dark .stat-card, body.dark .rev-card,
     body.dark .prospect-card, body.dark .followup-card{ background:rgba(17,17,24,0.65); border-color:rgba(255,255,255,0.08); box-shadow:0 4px 24px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.05);}
@@ -535,6 +257,7 @@
     body.dark .field input, body.dark .field select, body.dark .field textarea,
     body.dark .search-bar input, body.dark .search-bar select{ background:rgba(255,255,255,0.05); border-color:var(--border); color:var(--text); }
     body.dark .btn-outline{ background:rgba(255,255,255,0.05); border-color:var(--border); color:var(--text-2); }
+    body.dark .nav-item:hover, body.dark .nav-item.active{ background:rgba(168,85,247,0.15); }
     body.dark .script-box{ background:rgba(255,255,255,0.04); border-color:var(--border); }
     body.dark .tab-bar{ background:rgba(255,255,255,0.05); }
     body.dark .tab.active{ background:rgba(168,85,247,0.2); color:#fff; }
@@ -581,6 +304,10 @@
         linear-gradient(160deg, #ECEEF2 0%, #F4F5F8 45%, #E8EBF2 100%);
     }
     body.light::after { display: none; }
+    body.light #login-screen { background: linear-gradient(135deg, #f0ebff 0%, #e8f4ff 100%); }
+    body.light .login-right { background: linear-gradient(160deg, rgba(124,58,237,0.12) 0%, rgba(99,102,241,0.1) 50%, rgba(34,211,238,0.08) 100%); border-left: 1px solid rgba(124,58,237,0.15); }
+    body.light .login-right-text { color: #4C1D95 !important; }
+    body.light .login-right h2 { color: #1E1B4B !important; }
     body.light .login-card { background: #ffffff !important; border: 1px solid rgba(124,58,237,0.2) !important; box-shadow: 0 24px 64px rgba(124,58,237,0.12) !important; }
     body.light .login-card h1, body.light .login-card p, body.light .login-card label { color: #0F172A !important; }
     body.light .login-card p { color: #64748B !important; }
@@ -588,31 +315,18 @@
     body.light .login-card input::placeholder { color: #94A3B8 !important; }
     body.light .login-card input:focus { border-color: #7C3AED !important; background: #fff !important; }
     body.light .sidebar {
-    background:rgba(255,255,255,0.82);
-    backdrop-filter:blur(24px) saturate(1.6);
-    -webkit-backdrop-filter:blur(24px) saturate(1.6);
-    border-right:1px solid rgba(124,58,237,0.12);
-    box-shadow:4px 0 32px rgba(124,58,237,0.06);
+        background: rgba(255,255,255,0.95);
+        border-color: rgba(0,0,0,0.08);
+        box-shadow: 2px 0 16px rgba(0,0,0,0.06);
     }
-    body.light .nav-item{color:rgba(15,23,42,0.5);}
-    body.light .nav-item:hover{color:#0F172A;background:rgba(124,58,237,0.06);border-color:rgba(124,58,237,0.12);}
-    body.light .nav-item.active{color:#4C1D95;background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(99,102,241,0.08));border-color:rgba(124,58,237,0.2);}
-    body.light .sidebar-brand .brand-name{color:#0F172A;}
-    body.light .sidebar-brand .brand-name span{color:#7C3AED;}
-    body.light .sidebar-brand .brand-sub{color:rgba(124,58,237,0.65);}
-    body.light .sidebar-user-info .user-name{color:#0F172A;}
-    body.light .sidebar-user-info .user-role{color:rgba(15,23,42,0.4);}
-    body.light .nav-section-label{color:rgba(15,23,42,0.25);}
-    body.light .nav-section-label::after{background:rgba(15,23,42,0.08);}
-    body.light .sidebar-brand{border-bottom-color:rgba(15,23,42,0.08);}
-    body.light .sidebar-user{border-bottom-color:rgba(15,23,42,0.08);}
-    body.light .sidebar-bottom{border-top-color:rgba(15,23,42,0.08);}
-    body.light .sidebar-bottom .logout-btn{color:rgba(15,23,42,0.55);}
-    body.light .sidebar-bottom .logout-btn:hover{color:var(--red);}
-    body.light .sidebar-avatar::after{border-color:#fff;}
-    body.light .sidebar .nav-badge{background:rgba(124,58,237,0.12);border-color:rgba(124,58,237,0.28);color:#5B21B6;}
-    body.light .sidebar .nav-item .nav-badge.nav-badge-ceo{background:rgba(220,38,38,0.12);border-color:rgba(220,38,38,0.35);color:#B91C1C;}
-    body.light .sidebar .nav-item .nav-badge.badge-green{background:rgba(5,150,105,0.12);border-color:rgba(5,150,105,0.35);color:#047857;}
+    body.light .sidebar-logo span { color: #0F172A; }
+    body.light .nav-section { color: rgba(100,116,139,0.7); }
+    body.light .nav-item { color: #64748B; }
+    body.light .nav-item:hover { color: #0F172A; background: rgba(124,58,237,0.07); border-left-color: rgba(124,58,237,0.3); }
+    body.light .nav-item.active { color: #7C3AED; background: rgba(124,58,237,0.10); border-left-color: #7C3AED; font-weight:700; text-shadow:none; }
+    body.light .sidebar-footer { border-color: rgba(0,0,0,0.08); }
+    body.light .user-name { color: #0F172A; }
+    body.light .logout-btn { color: #64748B; }
     body.light .main-content { background: transparent; }
     body.light .page-header h2 { color: #0F172A; text-shadow: none; }
     body.light .page-header p { color: #64748B; }
@@ -725,6 +439,9 @@
     body.light .info-row { color: #64748B; }
     body.light .info-row strong { color: #0F172A; }
     body.light .ai-content { color: #374151; }
+    body.light .dark-toggle-track { background: rgba(0,0,0,0.10); border-color: rgba(0,0,0,0.12); }
+    body.light .dark-toggle-label { color: #64748B; }
+    body.light .dark-toggle-thumb { box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
     body.light .lead-card { background: #ffffff; border-color: rgba(0,0,0,0.08); }
     body.light .lead-biz { color: #0F172A; }
     body.light .lead-rep { color: #64748B; }
@@ -733,10 +450,15 @@
     body.light .pipeline-title { color: #0F172A; }
     body.light .rev-label { color: #64748B; }
 
+    /* Dark mode toggle button */
+    .dark-toggle{display:flex;align-items:center;justify-content:space-between;padding:8px 0;margin-bottom:4px;cursor:pointer;user-select:none;}
+    .dark-toggle-label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);}
+    .dark-toggle-track{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,0.1);border:1px solid var(--border);position:relative;transition:background .25s;}
+    .dark-toggle-track.on{background:var(--purple);border-color:var(--purple);}
+    .dark-toggle-thumb{width:14px;height:14px;border-radius:50%;background:#fff;position:absolute;top:2px;left:2px;transition:left .25s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+    .dark-toggle-track.on .dark-toggle-thumb{left:18px;}
     .main-content{margin-left:var(--sidebar);flex:1;padding:32px 36px 40px;min-height:100vh;background:transparent;}
     .page-header{margin-bottom:28px;}
-    #page-dashboard .dash-page-header{overflow:visible;}
-    #page-dashboard .dash-header-actions{overflow:visible;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
     .page-header h2{font-family:'Syne',sans-serif;font-size:clamp(22px,2.6vw,30px);font-weight:800;color:var(--text);text-shadow:0 0 28px rgba(168,85,247,0.25);letter-spacing:-0.03em;}
     .page-header p{color:var(--text-2);font-size:15px;margin-top:8px;font-weight:450;}
     .page{display:none;}
@@ -757,37 +479,14 @@
     .rev-card{background:var(--glass-card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,0.08);border-radius:var(--radius);padding:22px;display:flex;flex-direction:column;gap:4px;transition:box-shadow var(--t-fast),transform var(--t-fast),border-color var(--t-fast);box-shadow:0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.05);}
     .rev-card:hover{box-shadow:0 12px 40px rgba(0,0,0,0.45),0 0 0 1px rgba(168,85,247,0.25);transform:translateY(-2px);border-color:rgba(168,85,247,0.35);}
     .stat-label{font-size:13px;font-family:'Syne',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.45px;color:var(--text-2);margin-bottom:2px;line-height:1.35;}
-    .stat-num{display:block;line-height:1;}
-    .stat-num .stat-num-value{
-    font-family:'Syne',sans-serif;
-    font-size:clamp(26px,3.8vw,38px);
-    font-weight:800;
-    line-height:1.08;
-    letter-spacing:-0.035em;
-    display:inline-block;
-    background:linear-gradient(135deg,#E9D5FF,var(--purple-mid),var(--cyan));
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-    }
-    body:not(.light) .stat-num .stat-num-value{filter:drop-shadow(0 0 14px rgba(168,85,247,0.35)) drop-shadow(0 0 24px rgba(34,211,238,0.12));}
-    body.light .stat-num .stat-num-value{filter:none;}
-    .stat-num.stat-num-solid .stat-num-value{color:var(--purple-mid);-webkit-text-fill-color:var(--purple-mid);background:none;}
-    body:not(.light) .stat-num.stat-num-solid .stat-num-value{filter:drop-shadow(0 0 12px rgba(168,85,247,0.5));}
-    .stat-num.stat-num-cyan .stat-num-value{color:var(--cyan);-webkit-text-fill-color:var(--cyan);background:none;}
-    body:not(.light) .stat-num.stat-num-cyan .stat-num-value{filter:drop-shadow(0 0 14px rgba(34,211,238,0.45));}
+    .stat-num{font-family:'Syne',sans-serif;font-size:clamp(26px,3.8vw,38px);font-weight:800;line-height:1.08;letter-spacing:-0.035em;background:linear-gradient(135deg,#E9D5FF,var(--purple-mid),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    body:not(.light) .stat-num{filter:drop-shadow(0 0 14px rgba(168,85,247,0.35)) drop-shadow(0 0 24px rgba(34,211,238,0.12));}
+    body.light .stat-num{filter:none;}
+    .stat-num.stat-num-solid{color:var(--purple-mid);-webkit-text-fill-color:var(--purple-mid);background:none;}
+    body:not(.light) .stat-num.stat-num-solid{filter:drop-shadow(0 0 12px rgba(168,85,247,0.5));}
+    .stat-num.stat-num-cyan{color:var(--cyan);-webkit-text-fill-color:var(--cyan);background:none;}
+    body:not(.light) .stat-num.stat-num-cyan{filter:drop-shadow(0 0 14px rgba(34,211,238,0.45));}
     .stat-sub{font-size:13px;color:var(--text-2);margin-top:6px;line-height:1.4;}
-    /* Stat / dashboard numerals — Syne + normal variants (fixes blob/shape glyphs on mobile WebKit) */
-    .stat-value,.stat-num,.stat-num-value,.stat-count,[class*="stat-val"],[class*="stat-number"],
-    .ac-stat-num,.dashboard-number{
-    font-family:'Syne',sans-serif !important;
-    font-style:normal !important;
-    font-variant:normal !important;
-    font-variant-numeric:lining-nums !important;
-    font-feature-settings:normal !important;
-    -webkit-font-smoothing:antialiased;
-    -moz-osx-font-smoothing:grayscale;
-    }
 
     /* ── TABLES ── */
     .table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid rgba(255,255,255,0.08);backdrop-filter:blur(16px);box-shadow:0 4px 24px rgba(0,0,0,0.25);}
@@ -919,7 +618,7 @@
     .stat-grid.stat-grid-bento{grid-template-columns:repeat(12,1fr);gap:18px;align-items:stretch;}
     @media (min-width:769px){
         .stat-grid.stat-grid-bento .stat-bento-hero{grid-column:span 8;min-height:168px;padding:28px 30px 30px;}
-        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num .stat-num-value{font-size:clamp(34px,4.2vw,48px);}
+        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num{font-size:clamp(34px,4.2vw,48px);}
         .stat-grid.stat-grid-bento .stat-bento-side{grid-column:span 4;min-height:168px;padding:24px 22px;}
         .stat-grid.stat-grid-bento .stat-bento-sm{grid-column:span 4;min-height:128px;}
         .stat-grid.stat-grid-bento .stat-bento-mid{grid-column:span 5;min-height:128px;}
@@ -1067,7 +766,8 @@
         -webkit-text-size-adjust:100%;
         }
 
-        /* Login — full-width card on small screens */
+        /* Login — hide decorative right panel */
+        .login-right{display:none;}
         .login-left{padding:24px 20px;}
         .login-card{width:100%;max-width:400px;}
 
@@ -1078,7 +778,7 @@
         .stat-grid.stat-grid-bento .stat-bento-sm,
         .stat-grid.stat-grid-bento .stat-bento-mid,
         .stat-grid.stat-grid-bento .stat-bento-xs{grid-column:1/-1!important;min-height:0!important;padding:20px 18px!important;}
-        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num .stat-num-value{font-size:clamp(28px,9vw,40px)!important;}
+        .stat-grid.stat-grid-bento .stat-bento-hero .stat-num{font-size:clamp(28px,9vw,40px)!important;}
         .two-col{grid-template-columns:1fr !important;}
         .revenue-strip{grid-template-columns:1fr 1fr !important;}
         .prospect-grid{grid-template-columns:1fr !important;}
@@ -1088,41 +788,6 @@
         /* Page header */
         .page-header{margin-bottom:20px;}
         .page-header h2{font-size:clamp(20px,5vw,24px);}
-        /* Dashboard — keep Refresh / Log Call fully visible (no horizontal clip) */
-        #page-dashboard .dash-page-header{
-        overflow:visible !important;
-        flex-wrap:wrap !important;
-        }
-        #page-dashboard .dash-header-actions{
-        overflow:visible !important;
-        flex-wrap:wrap !important;
-        width:100%;
-        min-width:0;
-        }
-        #page-dashboard .page-header,
-        #page-dashboard .dash-page-header{
-        flex-direction:column !important;
-        align-items:stretch !important;
-        gap:14px;
-        }
-        #page-dashboard .page-header > div:nth-child(2),
-        #page-dashboard .dash-header-actions{
-        width:100%;
-        min-width:0;
-        display:flex !important;
-        flex-wrap:wrap;
-        gap:8px;
-        justify-content:flex-start;
-        }
-        #page-dashboard .page-header #dash-refresh-btn,
-        #page-dashboard .page-header .btn-header-log-call,
-        #page-dashboard .dash-header-actions #dash-refresh-btn,
-        #page-dashboard .dash-header-actions .btn-header-log-call{
-        flex:1 1 auto;
-        min-width:0;
-        max-width:100%;
-        white-space:normal;
-        }
 
         /* Search / filters — stack vertically, readable (16px avoids iOS input zoom) */
         .search-bar{
@@ -1150,32 +815,7 @@
         /* Cards — readable padding */
         .card{padding:18px;}
         .stat-card{padding:20px 18px;min-height:0;}
-        .stat-num .stat-num-value{font-size:clamp(26px,8vw,32px);}
-        /* iOS/WebKit: gradient text + drop-shadow often draws digits as blobs; use solid colors on small screens */
-        .stat-num .stat-num-value,.ac-stat-num,.ac-stat-num.ac-count-anim,.ac-stat-num.ac-count-anim .stat-num-value{
-        background:none !important;
-        background-image:none !important;
-        -webkit-background-clip:unset !important;
-        background-clip:unset !important;
-        -webkit-text-fill-color:unset !important;
-        filter:none !important;
-        }
-        .stat-value,.stat-num,.stat-num-value,.stat-count,[class*="stat-val"],[class*="stat-number"],
-        .ac-stat-num,.ac-count-anim{
-        font-family:'Syne',sans-serif !important;
-        font-style:normal !important;
-        font-variant:normal !important;
-        font-variant-numeric:lining-nums !important;
-        -webkit-font-smoothing:antialiased;
-        -moz-osx-font-smoothing:grayscale;
-        }
-        .stat-num:not(.stat-num-solid):not(.stat-num-cyan) .stat-num-value{color:var(--purple-mid);}
-        .stat-num.stat-num-solid .stat-num-value{color:var(--purple-mid) !important;}
-        .stat-num.stat-num-cyan .stat-num-value{color:var(--cyan) !important;}
-        .ac-stat-num,.ac-stat-num.ac-count-anim,.ac-stat-num.ac-count-anim .stat-num-value{color:var(--purple-mid);}
-        body.light .stat-num:not(.stat-num-cyan) .stat-num-value{color:#7C3AED !important;}
-        body.light .stat-num.stat-num-cyan .stat-num-value{color:#0891B2 !important;}
-        body.light .ac-stat-num,body.light .ac-stat-num.ac-count-anim,body.light .ac-stat-num.ac-count-anim .stat-num-value{color:#7C3AED !important;}
+        .stat-num{font-size:clamp(26px,8vw,32px);}
 
         /* Modal — full width sheet on mobile */
         .modal-overlay{align-items:flex-end;padding:0;}
@@ -1864,17 +1504,10 @@
         font-size:10px;font-family:'Syne',sans-serif;font-weight:700;
         text-transform:uppercase;letter-spacing:.6px;color:var(--text-2);margin-bottom:6px;
     }
-    .ac-stat-num{
-        font-family:'Syne',sans-serif;
-        font-size:26px;
-        font-weight:700;
-        line-height:1.1;
-        display:block;
-    }
-    .ac-stat-num .stat-num-value{
-        display:inline-block;
-        font:inherit;
-        font-family:'Syne',sans-serif;
+    .ac-stat-num {
+        font-family:'Syne',sans-serif;font-size:26px;font-weight:700;
+        background:linear-gradient(135deg,var(--purple),var(--cyan));
+        -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
     }
     .ac-stat-sub { font-size:11px;color:var(--text-2);margin-top:3px; }
 
@@ -2207,435 +1840,10 @@
         .cursor-dot, .cursor-ring { display: none !important; }
         .btn, .btn-primary, .tm-edit-btn { min-height: 44px; }
     }
-
-    /* ── SPLASH SCREEN (2026) ── */
-    #splash-screen {
-    position: fixed;
-    inset: 0;
-    z-index: 99999;
-    background: linear-gradient(135deg, #0a0a0f 0%, #12091a 50%, #0d1520 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    overflow: hidden;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
-    }
-    #splash-screen.splash-hide {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    }
-    .splash-bg-orb {
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
-    animation: splashOrbPulse 2.5s ease-in-out infinite alternate;
-    }
-    .splash-orb1 {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(168,85,247,0.2), transparent 70%);
-    top: -150px; right: -100px;
-    animation-delay: 0s;
-    }
-    .splash-orb2 {
-    width: 350px; height: 350px;
-    background: radial-gradient(circle, rgba(34,211,238,0.12), transparent 70%);
-    bottom: -100px; left: -80px;
-    animation-delay: 0.4s;
-    }
-    .splash-orb3 {
-    width: 200px; height: 200px;
-    background: radial-gradient(circle, rgba(168,85,247,0.1), transparent 70%);
-    bottom: 100px; right: 150px;
-    animation-delay: 0.8s;
-    }
-    @keyframes splashOrbPulse {
-    from { transform: scale(1); opacity: 0.7; }
-    to   { transform: scale(1.15); opacity: 1; }
-    }
-    .splash-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 28px;
-    position: relative;
-    z-index: 1;
-    animation: splashContentIn 0.6s cubic-bezier(0.16,1,0.3,1) forwards;
-    }
-    @keyframes splashContentIn {
-    from { opacity: 0; transform: translateY(24px) scale(0.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .splash-logo {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    }
-    .splash-logo-text {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(32px, 6vw, 52px);
-    font-weight: 800;
-    color: #fff;
-    letter-spacing: -0.03em;
-    line-height: 1;
-    }
-    .splash-accent { color: #A855F7; }
-    .splash-logo-sub {
-    font-family: 'Syne', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    color: rgba(168,85,247,0.7);
-    text-transform: uppercase;
-    }
-    .splash-bar-wrap {
-    width: 180px;
-    height: 2px;
-    background: rgba(255,255,255,0.08);
-    border-radius: 100px;
-    overflow: hidden;
-    }
-    .splash-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #A855F7, #22D3EE);
-    border-radius: 100px;
-    animation: splashBarFill 2s cubic-bezier(0.4,0,0.2,1) 0.3s forwards;
-    box-shadow: 0 0 8px rgba(168,85,247,0.6);
-    }
-    @keyframes splashBarFill {
-    0%   { width: 0%; opacity: 1; }
-    85%  { width: 95%; opacity: 1; }
-    100% { width: 100%; opacity: 1; }
-    }
-    .splash-tagline {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    color: rgba(255,255,255,0.3);
-    letter-spacing: 0.04em;
-    animation: splashTagIn 0.5s ease 0.8s both;
-    }
-    @keyframes splashTagIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-    }
-    #theme-fab {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    z-index: 9999;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 1px solid rgba(168,85,247,0.3);
-    background: rgba(17,17,24,0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    color: rgba(255,255,255,0.8);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 24px rgba(168,85,247,0.2), 0 2px 8px rgba(0,0,0,0.3);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    }
-    #theme-fab:hover {
-    transform: scale(1.1) rotate(15deg);
-    box-shadow: 0 8px 32px rgba(168,85,247,0.35), 0 2px 8px rgba(0,0,0,0.4);
-    background: rgba(168,85,247,0.25);
-    }
-    #theme-fab:active { transform: scale(0.95); }
-    body.light #theme-fab {
-    background: rgba(255,255,255,0.85);
-    border: 1px solid rgba(124,58,237,0.2);
-    color: #4C1D95;
-    box-shadow: 0 4px 24px rgba(124,58,237,0.15), 0 2px 8px rgba(0,0,0,0.08);
-    }
-    body.light #theme-fab:hover {
-    background: rgba(124,58,237,0.1);
-    box-shadow: 0 8px 32px rgba(124,58,237,0.25);
-    }
-    @media (max-width: 768px) {
-    #theme-fab { bottom: 80px; right: 16px; width: 44px; height: 44px; }
-    }
-    .hero-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 2rem;
-    padding: 2rem 0 2.5rem;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-    position: relative;
-    overflow: hidden;
-    }
-    .hero-text {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex: 1;
-    max-width: 420px;
-    }
-    .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(168,85,247,0.1);
-    border: 1px solid rgba(168,85,247,0.25);
-    padding: 5px 12px;
-    border-radius: 100px;
-    width: fit-content;
-    font-size: 11px;
-    font-weight: 600;
-    color: #A855F7;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    }
-    .hero-badge-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #A855F7;
-    animation: heroPulse 2s ease-in-out infinite;
-    }
-    @keyframes heroPulse {
-    0%,100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-    }
-    .hero-headline {
-    font-family: 'Syne', sans-serif;
-    font-size: clamp(2rem, 4vw, 3rem);
-    font-weight: 800;
-    line-height: 1.05;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    margin: 0;
-    }
-    .hero-accent { color: #A855F7; }
-    .hero-sub {
-    font-size: 14px;
-    color: var(--text-2);
-    line-height: 1.6;
-    margin: 0;
-    }
-    .hero-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: linear-gradient(135deg, #A855F7, #7C3AED);
-    color: white;
-    border: none;
-    padding: 11px 22px;
-    border-radius: 100px;
-    font-family: 'Syne', sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    width: fit-content;
-    transition: opacity 0.2s, transform 0.2s;
-    box-shadow: 0 4px 16px rgba(168,85,247,0.3);
-    }
-    .hero-cta:hover { opacity: 0.9; transform: translateY(-1px); }
-    .hero-illustration {
-    position: relative;
-    width: 280px;
-    height: 260px;
-    flex-shrink: 0;
-    }
-    .hero-avatar-wrap {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    animation: heroFloat 4s ease-in-out infinite;
-    }
-    @keyframes heroFloat {
-    0%,100% { transform: translate(-50%, -50%) translateY(0); }
-    50% { transform: translate(-50%, -50%) translateY(-10px); }
-    }
-    .hero-avatar-svg { width: 160px; height: 176px; position: relative; z-index: 2; }
-    .hero-avatar-ring {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    border: 1px solid rgba(168,85,247,0.2);
-    animation: heroRing 3s ease-in-out infinite;
-    z-index: 1;
-    }
-    .hero-ring2 {
-    width: 220px; height: 220px;
-    border-color: rgba(34,211,238,0.12);
-    animation-delay: 0.8s;
-    animation-duration: 4s;
-    }
-    @keyframes heroRing {
-    0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.6; }
-    50% { transform: translate(-50%,-50%) scale(1.06); opacity: 1; }
-    }
-    .hero-float-card {
-    position: absolute;
-    background: var(--glass-card);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 3;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    white-space: nowrap;
-    }
-    .hero-card1 { top: 10px; left: -20px; animation: floatCard1 5s ease-in-out infinite; }
-    .hero-card2 { top: 10px; right: -20px; animation: floatCard2 5s ease-in-out infinite 0.8s; }
-    .hero-card3 { bottom: 20px; left: 50%; transform: translateX(-50%); animation: floatCard3 5s ease-in-out infinite 1.4s; }
-    @keyframes floatCard1 {
-    0%,100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
-    }
-    @keyframes floatCard2 {
-    0%,100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-    }
-    @keyframes floatCard3 {
-    0%,100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(-5px); }
-    }
-    .hfc-icon { font-size: 18px; }
-    .hfc-info { display: flex; flex-direction: column; gap: 1px; }
-    .hfc-label { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
-    .hfc-val { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
-    body.light .hero-float-card { background: #fff; border-color: rgba(124,58,237,0.12); }
-    body.light .hero-headline { color: #0F172A; }
-    @media (max-width: 768px) {
-    .hero-section { flex-direction: column; text-align: center; padding: 1.5rem 0; }
-    .hero-illustration { width: 220px; height: 200px; }
-    .hero-badge { margin: 0 auto; }
-    .hero-cta { margin: 0 auto; }
-    .hero-card1 { left: 0; }
-    .hero-card2 { right: 0; }
-    }
     </style>
 
     </head>
     <body>
-    <div id="splash-screen">
-    <div class="splash-bg-orb splash-orb1"></div>
-    <div class="splash-bg-orb splash-orb2"></div>
-    <div class="splash-bg-orb splash-orb3"></div>
-    <div class="splash-content">
-    <div class="splash-logo">
-    <span class="splash-logo-text">Tec<span class="splash-accent">Blitz</span>Web</span>
-    <span class="splash-logo-sub">SALES OS</span>
-    </div>
-    <div class="splash-bar-wrap">
-    <div class="splash-bar"></div>
-    </div>
-    <span class="splash-tagline">Track every call. Close every deal.</span>
-    </div>
-    </div>
-    <script>
-    (function() {
-    setTimeout(function() {
-        const splash = document.getElementById('splash-screen');
-        if (splash) {
-        splash.classList.add('splash-hide');
-        setTimeout(function() {
-            splash.style.display = 'none';
-        }, 500);
-        }
-    }, 2500);
-    })();
-    </script>
-    <script>
-    (function(){
-    const canvas = document.getElementById('login-canvas');
-    if(!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let W, H, particles = [], animId;
-    function resize(){
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    }
-    function isLight(){ return document.body.classList.contains('light'); }
-    function Particle(){
-    this.x = Math.random() * W;
-    this.y = Math.random() * H;
-    this.r = Math.random() * 180 + 80;
-    this.vx = (Math.random() - 0.5) * 1.2;
-    this.vy = (Math.random() - 0.5) * 1.2;
-    this.hue = Math.random() > 0.5 ? 270 : 190;
-    this.alpha = Math.random() * 0.25 + 0.15;
-    }
-    Particle.prototype.update = function(){
-    this.x += this.vx;
-    this.y += this.vy;
-    if(this.x < -this.r) this.x = W + this.r;
-    if(this.x > W + this.r) this.x = -this.r;
-    if(this.y < -this.r) this.y = H + this.r;
-    if(this.y > H + this.r) this.y = -this.r;
-    };
-    Particle.prototype.draw = function(){
-    const light = isLight();
-    const alpha = light ? this.alpha * 2.5 : this.alpha;
-    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.r);
-    grad.addColorStop(0, 'hsla('+this.hue+', 80%, '+(light?50:65)+'%, '+alpha+')');
-    grad.addColorStop(1, 'hsla('+this.hue+', 80%, '+(light?50:65)+'%, 0)');
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-    ctx.fillStyle = grad;
-    ctx.fill();
-    };
-    function initParticles(){
-    particles = [];
-    for(let i = 0; i < 10; i++) particles.push(new Particle());
-    }
-    function loop(){
-    const light = isLight();
-    ctx.fillStyle = light ? 'rgba(240,235,255,0.15)' : 'rgba(10,10,15,0.15)';
-    ctx.fillRect(0, 0, W, H);
-    particles.forEach(function(p){ p.update(); p.draw(); });
-    animId = requestAnimationFrame(loop);
-    }
-    function startCanvas(){
-    const screen = document.getElementById('login-screen');
-    if(!screen || screen.style.display === 'none' || getComputedStyle(screen).display === 'none') return;
-    resize();
-    initParticles();
-    if(animId) cancelAnimationFrame(animId);
-    loop();
-    }
-    function stopCanvas(){
-    if(animId) cancelAnimationFrame(animId);
-    animId = null;
-    }
-    window.addEventListener('resize', resize);
-    const origShowLogin = window.showLogin;
-    window.showLogin = function(){
-    if(typeof origShowLogin === 'function') origShowLogin.apply(this, arguments);
-    setTimeout(startCanvas, 50);
-    };
-    const origShowApp = window.showApp;
-    window.showApp = function(){
-    stopCanvas();
-    if(typeof origShowApp === 'function') origShowApp.apply(this, arguments);
-    };
-    const loginScreenNode = document.getElementById('login-screen');
-    if(loginScreenNode && typeof MutationObserver !== 'undefined'){
-    new MutationObserver(function(){
-    if(loginScreenNode.style.display === 'none' || getComputedStyle(loginScreenNode).display === 'none') stopCanvas();
-    else setTimeout(startCanvas, 50);
-    }).observe(loginScreenNode, { attributes: true, attributeFilter: ['style'] });
-    }
-    if(loginScreenNode && loginScreenNode.style.display !== 'none' && getComputedStyle(loginScreenNode).display !== 'none'){
-    setTimeout(startCanvas, 100);
-    }
-    })();
-    </script>
-
     <script>
     (function(){
     try{
@@ -2651,40 +1859,15 @@
     }
     document.body.classList.remove('light', 'dark');
     document.body.classList.add(savedTheme);
-    function syncThemeFabIconsFromBody(){
-    var isDark = document.body.classList.contains('dark');
-    var d = document.getElementById('theme-fab-icon-dark');
-    var l = document.getElementById('theme-fab-icon-light');
-    if(d) d.style.display = isDark ? 'block' : 'none';
-    if(l) l.style.display = isDark ? 'none' : 'block';
-    }
-    if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', syncThemeFabIconsFromBody);
-    } else {
-    syncThemeFabIconsFromBody();
-    }
     }catch(e){
     document.body.classList.remove('light', 'dark');
     document.body.classList.add('dark');
-    function syncThemeFabIconsFromBodyCatch(){
-    var isDark = document.body.classList.contains('dark');
-    var d = document.getElementById('theme-fab-icon-dark');
-    var l = document.getElementById('theme-fab-icon-light');
-    if(d) d.style.display = isDark ? 'block' : 'none';
-    if(l) l.style.display = isDark ? 'none' : 'block';
-    }
-    if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', syncThemeFabIconsFromBodyCatch);
-    } else {
-    syncThemeFabIconsFromBodyCatch();
-    }
     }
     })();
     </script>
 
     <!-- LOGIN -->
     <div id="login-screen">
-    <canvas id="login-canvas"></canvas>
     <div class="login-left">
         <div class="login-card">
         <div class="login-logo">
@@ -2708,6 +1891,13 @@
         <button class="btn-primary" id="login-btn" onclick="doLogin()">Login</button>
         </div>
     </div>
+    <div class="login-right">
+        <img src="" style="display:none" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.35)) drop-shadow(0 2px 8px rgba(0,201,177,0.4));" alt="TecBlitzWeb Logo">
+        <h2>TecBlitzWeb<br>Sales OS</h2>
+        <div class="login-right-text">
+        Track every call.<br>Close every deal.<br>Built for the TecBlitzWeb team.
+        </div>
+    </div>
     </div>
 
     <!-- MOBILE TOPBAR -->
@@ -2725,24 +1915,22 @@
     <div class="app-layout">
         <!-- SIDEBAR -->
         <aside class="sidebar">
-        <div class="sidebar-brand">
-            <div class="sidebar-brand-top">
-            <img src="" alt="" class="sidebar-brand-img" style="display:none;width:30px;height:30px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(123,47,255,0.5));">
+        <div class="sidebar-logo" style="display:flex;align-items:center;gap:8px;padding:14px 16px 12px;">
+            <img src="" style="display:none" style="width:30px;height:30px;object-fit:contain;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(123,47,255,0.5));" alt="Logo">
             <div>
-            <div class="brand-name">Tec<span>Blitz</span>Web</div>
-            <div class="brand-sub">SALES OS</div>
-            </div>
+            <span style="display:block;">Tec<b>Blitz</b>Web</span>
+            <small>SALES OS</small>
             </div>
         </div>
         <div class="sidebar-user">
-            <div class="sidebar-avatar" id="sb-avatar">B</div>
-            <div class="sidebar-user-info">
+            <div class="user-avatar" id="sb-avatar">B</div>
+            <div class="user-info">
             <div class="user-name" id="sb-name">Bisara</div>
             <div class="user-role" id="sb-role">CEO</div>
             </div>
         </div>
         <nav class="sidebar-nav">
-            <div class="nav-section-label">Main</div>
+            <div class="nav-section">Main</div>
             <div class="nav-item active" onclick="goPage('dashboard')">
             <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity=".5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/></svg>
             Dashboard
@@ -2754,7 +1942,7 @@
             <div class="nav-item" onclick="goPage('jobs')">
             <svg viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M5 6h6M5 10h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Jobs / Leads
-            <span class="nav-badge nav-badge-ceo" data-jobs-ceo-badge style="display:none;"></span>
+            <span data-jobs-ceo-badge style="margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:999px;display:none;"></span>
             </div>
             <div class="nav-item" onclick="goPage('mycalls')">
             <svg viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3z" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M6 8l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -2768,10 +1956,10 @@
             <div class="nav-item" onclick="goPage('pipeline')" id="nav-pipeline">
             <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h9M2 12h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="13" cy="12" r="2" fill="currentColor" opacity=".7"/></svg>
             Interested Leads
-            <span class="nav-badge badge-green" id="pipeline-nav-badge"></span>
+            <span class="badge badge-green" id="pipeline-nav-badge" style="margin-left:auto;font-size:9px;min-width:16px;text-align:center;"></span>
             </div>
 
-            <div class="nav-section-label mgmt-only">Management</div>
+            <div class="nav-section mgmt-only">Management</div>
             <div class="nav-item mgmt-only" onclick="goPage('allcalls')">
             <svg viewBox="0 0 16 16" fill="none"><path d="M1 5h14M1 9h14M1 13h14M1 1h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             All Calls
@@ -2789,8 +1977,15 @@
             AI Daily Report
             </div>
         </nav>
-        <div class="sidebar-bottom">
-            <div class="nav-item" onclick="goPage('settings')">
+        <div class="sidebar-footer">
+            <div class="dark-toggle" onclick="toggleDarkMode()">
+            <div class="dark-toggle-label">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v1M7 12v1M1 7H2M12 7h1M3.05 3.05l.7.7M10.25 10.25l.7.7M3.05 10.95l.7-.7M10.25 3.75l.7-.7M9.5 7a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <span id="dark-toggle-label-text">Dark Mode</span>
+            </div>
+            <div class="dark-toggle-track" id="dark-toggle-track"><div class="dark-toggle-thumb"></div></div>
+            </div>
+            <div class="nav-item" onclick="goPage('settings')" style="margin-bottom:6px;border-radius:8px;">
             <svg viewBox="0 0 16 16" fill="none" width="16" height="16"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Settings
             </div>
@@ -2806,69 +2001,14 @@
 
         <!-- DASHBOARD -->
         <div id="page-dashboard" class="page active">
-            <div class="hero-section" id="hero-section">
-            <div class="hero-text">
-            <div class="hero-badge">
-            <span class="hero-badge-dot"></span>
-            <span>TecBlitzWeb Sales OS</span>
-            </div>
-            <h1 class="hero-headline">Close Every<br><span class="hero-accent">Deal.</span></h1>
-            <p class="hero-sub">Track calls. Manage leads. Grow revenue.</p>
-            <button class="hero-cta" onclick="document.getElementById('btn-log-call')?.click()">+ Log a Call</button>
-            </div>
-            <div class="hero-illustration">
-            <div class="hero-float-card hero-card1">
-            <div class="hfc-icon">📞</div>
-            <div class="hfc-info"><span class="hfc-label">Calls Today</span><span class="hfc-val" id="hero-calls-val">—</span></div>
-            </div>
-            <div class="hero-float-card hero-card2">
-            <div class="hfc-icon">⭐</div>
-            <div class="hfc-info"><span class="hfc-label">Interested</span><span class="hfc-val" id="hero-leads-val">—</span></div>
-            </div>
-            <div class="hero-float-card hero-card3">
-            <div class="hfc-icon">👥</div>
-            <div class="hfc-info"><span class="hfc-label">Prospects</span><span class="hfc-val" id="hero-prospects-val">—</span></div>
-            </div>
-            <div class="hero-avatar-wrap">
-            <div class="hero-avatar-ring"></div>
-            <div class="hero-avatar-ring hero-ring2"></div>
-            <svg class="hero-avatar-svg" viewBox="0 0 200 220" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="60" r="36" fill="#A855F7" opacity="0.15"/>
-            <circle cx="100" cy="58" r="28" fill="#C084FC"/>
-            <ellipse cx="100" cy="57" rx="16" ry="18" fill="#F5D0FE"/>
-            <ellipse cx="93" cy="52" rx="3" ry="3.5" fill="#1e1b4b"/>
-            <ellipse cx="107" cy="52" rx="3" ry="3.5" fill="#1e1b4b"/>
-            <path d="M93 62 Q100 68 107 62" stroke="#1e1b4b" stroke-width="1.5" stroke-linecap="round" fill="none"/>
-            <rect x="72" y="88" width="56" height="64" rx="12" fill="#7C3AED"/>
-            <rect x="78" y="94" width="44" height="52" rx="8" fill="#A855F7"/>
-            <rect x="82" y="98" width="36" height="4" rx="2" fill="white" opacity="0.5"/>
-            <rect x="82" y="106" width="28" height="3" rx="1.5" fill="white" opacity="0.3"/>
-            <rect x="82" y="113" width="32" height="3" rx="1.5" fill="white" opacity="0.3"/>
-            <rect x="60" y="92" width="14" height="44" rx="7" fill="#C084FC"/>
-            <rect x="126" y="92" width="14" height="44" rx="7" fill="#C084FC"/>
-            <rect x="58" y="152" width="20" height="36" rx="10" fill="#A855F7"/>
-            <rect x="122" y="152" width="20" height="36" rx="10" fill="#A855F7"/>
-            <rect x="50" y="130" width="100" height="12" rx="6" fill="#7C3AED" opacity="0.4"/>
-            <rect x="70" y="152" width="60" height="8" rx="4" fill="#6D28D9" opacity="0.5"/>
-            <rect x="72" y="155" width="56" height="52" rx="8" fill="#22D3EE" opacity="0.15"/>
-            <rect x="76" y="158" width="48" height="36" rx="6" fill="#0E7490" opacity="0.8"/>
-            <rect x="79" y="161" width="42" height="2" rx="1" fill="#22D3EE" opacity="0.6"/>
-            <rect x="79" y="166" width="34" height="1.5" rx="0.75" fill="white" opacity="0.3"/>
-            <rect x="79" y="170" width="38" height="1.5" rx="0.75" fill="white" opacity="0.3"/>
-            <rect x="79" y="174" width="30" height="1.5" rx="0.75" fill="white" opacity="0.2"/>
-            <rect x="68" y="196" width="64" height="4" rx="2" fill="#6D28D9" opacity="0.3"/>
-            </svg>
-            </div>
-            </div>
-            </div>
-            <div class="page-header dash-page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;overflow:visible;">
+            <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
             <div>
                 <h2>Dashboard</h2>
                 <p id="dash-date"></p>
             </div>
-            <div class="dash-header-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;overflow:visible;min-width:0;">
-                <button class="btn btn-outline" onclick="dashboardRefreshNow()" id="dash-refresh-btn" style="min-width:0;white-space:normal;">Refresh Now</button>
-                <button type="button" class="btn btn-purple btn-header-log-call" id="btn-log-call" onclick="openModal('call-modal')" style="min-width:0;white-space:normal;">+ Log Call</button>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <button class="btn btn-outline" onclick="dashboardRefreshNow()" id="dash-refresh-btn" style="flex-shrink:0;">Refresh Now</button>
+                <button class="btn btn-purple btn-header-log-call" onclick="openModal('call-modal')" style="flex-shrink:0;">+ Log Call</button>
             </div>
             </div>
             <div class="stat-grid stat-grid-bento" id="dash-stats"></div>
@@ -3955,7 +3095,7 @@
     "SalesR06": { pin:"6262", role:"Sales",  email:"salesr06@tecblitzweb.com" },
     "SalesR07": { pin:"7373", role:"Sales",  email:"salesr07@tecblitzweb.com" },
     "SalesR08": { pin:"3232", role:"Sales",  email:"salesr08@tecblitzweb.com" },
-    "SalesR09": { pin:"4343", role:"Sales",  email:"salesr09@tecblitzweb.com" },
+    "SalesR09": { pin:"6868", role:"Sales",  email:"salesr09@tecblitzweb.com" },
     "SalesR10": { pin:"9191", role:"Sales",  email:"salesr10@tecblitzweb.com" },
     "SalesR11": { pin:"3838", role:"Sales",  email:"salesr11@tecblitzweb.com" },
     "SalesR12": { pin:"7373", role:"Sales",  email:"salesr12@tecblitzweb.com" }
@@ -4444,8 +3584,7 @@
             role: 'User'
         };
         }
-        currentUser = canonicalRepKey(user.name);
-        sessionStorage.setItem('sos_user', currentUser);
+        currentUser = user.name;
     
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);
@@ -4461,7 +3600,6 @@
     }
     function doLogout(){
     currentUser = null;
-    sessionStorage.removeItem('sos_user');
     const emailInput = document.getElementById('emailInput');
     const passwordInput = document.getElementById('passwordInput');
     if(emailInput) emailInput.value = '';
@@ -4476,18 +3614,6 @@
     // APP LAUNCH
     // ════════════════════════════════════════
     // launchApp defined below (merged version with cloud sync + avatar + badge polling)
-
-    // ── Session restore on page reload ──
-    (function restoreSession(){
-    const saved = sessionStorage.getItem('sos_user');
-    if(saved && USERS[saved]){
-        currentUser = saved;
-        window.addEventListener('DOMContentLoaded', function(){
-        launchApp();
-        if(typeof goPage === 'function') goPage('dashboard');
-        });
-    }
-    })();
 
     // ════════════════════════════════════════
     // NAVIGATION
@@ -5181,7 +4307,6 @@
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const u = USERS[currentUser];
-    if(!u){ console.warn('renderDashboard: USERS['+String(currentUser)+'] is undefined'); return; }
     const allCalls = getCalls();
     const visibleReps = getVisibleRepUIDs();
     let myCalls;
@@ -5201,11 +4326,11 @@
     var _icCal='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>';
     var _icUsers='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>';
     document.getElementById('dash-stats').innerHTML=`
-        <div class="stat-card stat-accent-purple stat-bento-hero"><div class="stat-card-top"><div><div class="stat-label">Calls Today</div></div><div class="stat-card-icon" aria-hidden="true">${_icPhone}</div></div><div class="stat-num"><span class="stat-num-value">${todayCalls.length}</span></div><div class="stat-sub">as of ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-side"><div class="stat-card-top"><div><div class="stat-label">Total Calls</div></div><div class="stat-card-icon" aria-hidden="true">${_icStack}</div></div><div class="stat-num stat-num-solid"><span class="stat-num-value">${myCalls.length}</span></div><div class="stat-sub">${u.tier==='rep'?'your calls':'all team'}</div></div>
-        <div class="stat-card stat-accent-purple stat-bento-sm"><div class="stat-card-top"><div><div class="stat-label">Interested Leads</div></div><div class="stat-card-icon" aria-hidden="true">${_icStar}</div></div><div class="stat-num stat-num-cyan"><span class="stat-num-value">${interested.length}</span></div><div class="stat-sub">of ${myCalls.length} total</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-mid"><div class="stat-card-top"><div><div class="stat-label">Follow-ups (7d)</div></div><div class="stat-card-icon" aria-hidden="true">${_icCal}</div></div><div class="stat-num stat-num-solid"><span class="stat-num-value">${fueDue.length}</span></div><div class="stat-sub">due this week</div></div>
-        <div class="stat-card stat-accent-cyan stat-bento-xs"><div class="stat-card-top"><div><div class="stat-label">Prospects</div></div><div class="stat-card-icon" aria-hidden="true">${_icUsers}</div></div><div class="stat-num stat-num-cyan"><span class="stat-num-value">${myProspects.length}</span></div><div class="stat-sub">${u.tier==='rep'?'assigned to you':'total prospects'}</div></div>
+        <div class="stat-card stat-accent-purple stat-bento-hero"><div class="stat-card-top"><div><div class="stat-label">Calls Today</div></div><div class="stat-card-icon" aria-hidden="true">${_icPhone}</div></div><div class="stat-num">${todayCalls.length}</div><div class="stat-sub">as of ${new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-side"><div class="stat-card-top"><div><div class="stat-label">Total Calls</div></div><div class="stat-card-icon" aria-hidden="true">${_icStack}</div></div><div class="stat-num stat-num-solid">${myCalls.length}</div><div class="stat-sub">${u.tier==='rep'?'your calls':'all team'}</div></div>
+        <div class="stat-card stat-accent-purple stat-bento-sm"><div class="stat-card-top"><div><div class="stat-label">Interested Leads</div></div><div class="stat-card-icon" aria-hidden="true">${_icStar}</div></div><div class="stat-num stat-num-cyan">${interested.length}</div><div class="stat-sub">of ${myCalls.length} total</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-mid"><div class="stat-card-top"><div><div class="stat-label">Follow-ups (7d)</div></div><div class="stat-card-icon" aria-hidden="true">${_icCal}</div></div><div class="stat-num stat-num-solid">${fueDue.length}</div><div class="stat-sub">due this week</div></div>
+        <div class="stat-card stat-accent-cyan stat-bento-xs"><div class="stat-card-top"><div><div class="stat-label">Prospects</div></div><div class="stat-card-icon" aria-hidden="true">${_icUsers}</div></div><div class="stat-num stat-num-cyan">${myProspects.length}</div><div class="stat-sub">${u.tier==='rep'?'assigned to you':'total prospects'}</div></div>
     `;
 
     const tcc = document.getElementById('dash-today-calls');
@@ -5234,13 +4359,6 @@
 
     // Render recent calls history section
     renderDashRecentCalls();
-
-    const heroC = document.getElementById('hero-calls-val');
-    const heroL = document.getElementById('hero-leads-val');
-    const heroP = document.getElementById('hero-prospects-val');
-    if(heroC) heroC.textContent = getCalls().filter(c=>c.date===new Date().toISOString().split('T')[0]).length;
-    if(heroL) heroL.textContent = (getLeads ? getLeads() : []).length;
-    if(heroP) heroP.textContent = getProspects ? getProspects().length : '—';
     }
 
     async function dashboardRefreshNow(){
@@ -6065,9 +5183,9 @@
     }
 
     function tmTierFromRole(role){
-    if(role==='Director / CEO' || role==='Co-CEO') return 'ceo';
+    if(role==='Director / CEO') return 'ceo';
     if(role==='Chief Operating Officer') return 'coo';
-    if(role==='Sales Manager') return 'management';
+    if(['Co-CEO','Sales Manager'].includes(role)) return 'management';
     return 'rep';
     }
 
@@ -7300,14 +6418,6 @@
     // ── launchApp — merged: cloud sync + avatar + badge polling ──
     function launchApp(){
     const u = USERS[currentUser];
-    if(!u){
-        console.error('launchApp: no USERS entry for currentUser=', currentUser);
-        sessionStorage.removeItem('sos_user');
-        document.getElementById('app').style.display='none';
-        document.getElementById('login-screen').style.display='flex';
-        document.getElementById('login-error').textContent='Session error. Please log in again.';
-        return;
-    }
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='block';
     // Avatar
@@ -7676,35 +6786,42 @@
     function toggleDarkMode(){
     const body = document.body;
     const isDark = body.classList.contains('dark');
+    const track = document.getElementById('dark-toggle-track');
+    const label = document.getElementById('dark-toggle-label-text');
     if(isDark){
         body.classList.remove('dark');
         body.classList.add('light');
+        if(track) track.classList.remove('on');
+        if(label) label.textContent = 'Dark Mode';
         try{ localStorage.setItem('theme','light'); }catch(e){}
     } else {
         body.classList.remove('light');
         body.classList.add('dark');
+        if(track) track.classList.add('on');
+        if(label) label.textContent = 'Light Mode';
         try{ localStorage.setItem('theme','dark'); }catch(e){}
     }
-    const isDarkNow = document.body.classList.contains('dark');
-    const fabDark = document.getElementById('theme-fab-icon-dark');
-    const fabLight = document.getElementById('theme-fab-icon-light');
-    if(fabDark) fabDark.style.display = isDarkNow ? 'block' : 'none';
-    if(fabLight) fabLight.style.display = isDarkNow ? 'none' : 'block';
     }
+    // Sync sidebar theme toggle UI (body class applied by head script + theme key)
     (function(){
-    function syncThemeFabIcons(){
+    function syncThemeToggle(){
         try{
-        const isDark = document.body.classList.contains('dark');
-        const d = document.getElementById('theme-fab-icon-dark');
-        const l = document.getElementById('theme-fab-icon-light');
-        if(d) d.style.display = isDark ? 'block' : 'none';
-        if(l) l.style.display = isDark ? 'none' : 'block';
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        const track = document.getElementById('dark-toggle-track');
+        const label = document.getElementById('dark-toggle-label-text');
+        if(savedTheme === 'dark'){
+            if(track) track.classList.add('on');
+            if(label) label.textContent = 'Light Mode';
+        } else {
+            if(track) track.classList.remove('on');
+            if(label) label.textContent = 'Dark Mode';
+        }
         }catch(e){}
     }
     if(document.readyState === 'loading'){
-        document.addEventListener('DOMContentLoaded', syncThemeFabIcons);
+        document.addEventListener('DOMContentLoaded', syncThemeToggle);
     } else {
-        syncThemeFabIcons();
+        syncThemeToggle();
     }
     })();
 
@@ -8759,7 +7876,7 @@
     bar.innerHTML = stats.map(s => `
         <div class="ac-stat-card">
         <div class="ac-stat-label">${s.label}</div>
-        <div class="ac-stat-num ac-count-anim" data-target="${s.num}"><span class="stat-num-value" style="background:linear-gradient(135deg,${s.color},${s.color === 'var(--cyan)' ? 'var(--purple)' : 'var(--cyan)'});-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">0</span></div>
+        <div class="ac-stat-num ac-count-anim" data-target="${s.num}" style="background:linear-gradient(135deg,${s.color},${s.color === 'var(--cyan)' ? 'var(--purple)' : 'var(--cyan)'}); -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">0</div>
         <div class="ac-stat-sub">${s.sub}</div>
         </div>
     `).join('');
@@ -8768,12 +7885,11 @@
     document.querySelectorAll('.ac-count-anim').forEach(el => {
         const target = parseInt(el.dataset.target, 10);
         if (isNaN(target)) return;
-        const numEl = el.querySelector('.stat-num-value') || el;
         let cur = 0;
         const step = Math.max(1, Math.ceil(target / 24));
         const t = setInterval(() => {
         cur = Math.min(cur + step, target);
-        numEl.textContent = cur;
+        el.textContent = cur;
         if (cur >= target) clearInterval(t);
         }, 40);
     });
@@ -9236,21 +8352,4 @@
     }
     })();
     </script>
-    <script>
-    if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/tecblitzweb-salebsos/sw.js')
-        .then(function(reg) { console.log('SW registered:', reg.scope); })
-        .catch(function(err) { console.log('SW failed:', err); });
-    });
-    }
-    </script>
-    <button id="theme-fab" onclick="toggleDarkMode()" title="Toggle theme" aria-label="Toggle dark/light mode">
-    <svg id="theme-fab-icon-dark" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 1v1.5M9 15.5V17M1 9h1.5M15.5 9H17M3.4 3.4l1.06 1.06M13.54 13.54l1.06 1.06M3.4 14.6l1.06-1.06M13.54 4.46l1.06-1.06M12 9A3 3 0 116 9a3 3 0 016 0z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <svg id="theme-fab-icon-light" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none">
-    <path d="M15 11.5A7 7 0 017.5 3a7 7 0 100 12 7 7 0 007.5-3.5z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    </button>
     </body>

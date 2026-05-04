@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
     <html lang="en">
     <head>
     <meta charset="UTF-8">
@@ -4158,7 +4158,7 @@
     'Monthly Maintenance – Rs. 10,000/mo': 10000,
     };
 
-    let currentUser = sessionStorage.getItem('currentUser') || null;
+    let currentUser = null;
     let pinBuffer = '';
     let pinConfirmBuffer = '';
     let settingPin = false;
@@ -4481,9 +4481,16 @@
         };
         }
         const emailLocal = user.email ? user.email.split('@')[0] : '';
-        currentUser = USERS[user.name] ? user.name : (canonicalRepKey(user.name) || canonicalRepKey(emailLocal));
+        const _nk = canonicalRepKey(user.name);
+        const _ek = canonicalRepKey(emailLocal);
+        currentUser = USERS[_nk] ? _nk : (USERS[_ek] ? _ek : null);
+        if(!currentUser){
+            setLoading(false);
+            showError('Account not found in system. Contact admin.');
+            return;
+        }
         sessionStorage.setItem('currentUser', currentUser);
-        console.log('currentUser resolved to:', currentUser, '| from name:', user.name, '| emailLocal:', emailLocal);
+        console.log('currentUser resolved:', currentUser);
     
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);

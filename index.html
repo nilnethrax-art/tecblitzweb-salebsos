@@ -4745,12 +4745,10 @@
     if(!p || !u) return false;
     if(isCEO(currentUser)) return true;
     if(u.tier === 'rep'){
-        if(isProspectUnassigned(p)) return true;
         return canonicalRepKey(p.assignedTo) === canonicalRepKey(currentUser) || p.assignedTo === currentUser;
     }
     if(u.tier === 'coo' || (u.tier === 'ceo' && u.role !== 'CEO')){
         var vr = getVisibleRepUIDs();
-        if(isProspectUnassigned(p)) return true;
         var ak = canonicalRepKey(p.assignedTo);
         return vr.includes(p.assignedTo) || vr.includes(ak) || p.assignedTo === currentUser || ak === canonicalRepKey(currentUser);
     }

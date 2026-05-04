@@ -4745,12 +4745,10 @@
     if(!p || !u) return false;
     if(isCEO(currentUser)) return true;
     if(u.tier === 'rep'){
-        if(isProspectUnassigned(p)) return true;
         return canonicalRepKey(p.assignedTo) === canonicalRepKey(currentUser) || p.assignedTo === currentUser;
     }
     if(u.tier === 'coo' || (u.tier === 'ceo' && u.role !== 'CEO')){
         var vr = getVisibleRepUIDs();
-        if(isProspectUnassigned(p)) return true;
         var ak = canonicalRepKey(p.assignedTo);
         return vr.includes(p.assignedTo) || vr.includes(ak) || p.assignedTo === currentUser || ak === canonicalRepKey(currentUser);
     }
@@ -5097,7 +5095,7 @@
     }
 
     function renderDashboard(){
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const u = USERS[currentUser];
     if(!u){ console.warn('renderDashboard: USERS['+String(currentUser)+'] is undefined'); return; }
@@ -5157,7 +5155,7 @@
     const heroC = document.getElementById('hero-calls-val');
     const heroL = document.getElementById('hero-leads-val');
     const heroP = document.getElementById('hero-prospects-val');
-    if(heroC) heroC.textContent = getCalls().filter(c=>c.date===new Date().toISOString().split('T')[0]).length;
+    if(heroC) heroC.textContent = getCalls().filter(c=>c.date===(function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })()).length;
     if(heroL) heroL.textContent = (getLeads ? getLeads() : []).length;
     if(heroP) heroP.textContent = getProspects ? getProspects().length : '—';
     }
@@ -5192,7 +5190,7 @@
     // FOLLOW-UPS PAGE
     // ════════════════════════════════════════
     function renderFollowups(){
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const u = USERS[currentUser];
     let calls = getCalls();
     if(u.tier==='rep') calls = calls.filter(c=>c.rep===currentUser);
@@ -5238,7 +5236,7 @@
     // PERFORMANCE
     // ════════════════════════════════════════
     function renderPerformance(){
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const calls = getCalls();
     const visibleReps = getVisibleRepUIDs();
     const reps = Object.entries(USERS).filter(([k,v])=>v.tier==='rep' && visibleReps.includes(k));
@@ -5301,7 +5299,7 @@
         pipeline += PACKAGES[l.pkg] || 85000;
     });
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const fuPending = calls.filter(c=>c.followup && c.followup>=today).length;
 
     document.getElementById('revenue-content').innerHTML=`
@@ -5457,7 +5455,7 @@
     btn.innerHTML='<span class="spinner"></span> Generating...';
     out.innerHTML='<div class="ai-report-box" style="min-height:120px;display:flex;align-items:center;justify-content:center;color:var(--cyan);font-family:Syne,sans-serif;"><span class="spinner"></span>&nbsp;Analysing team data...</div>';
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const calls = getCalls();
     const ps = getProspects();
     const reps = Object.entries(USERS).filter(([,v])=>v.tier==='rep');
@@ -5852,7 +5850,7 @@
     appendUserMsg(text);
 
     // Build context from sales data
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const calls = getCalls();
     const ps = getProspects();
     const reps = Object.entries(USERS).filter(([,v])=>v.tier==='rep');
@@ -8028,7 +8026,7 @@
             biz: lead.biz,
             value: pkgValue,
             rep: lead.rep,
-            date: new Date().toISOString().split('T')[0],
+            date: (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })(),
             pkg: lead.pkg || 'Business Website – Rs. 85,000',
             leadId: leadId,
             source: 'pipeline'
@@ -8651,7 +8649,7 @@
 
     // ── STATS ──
     function acRenderStats() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
 
     // Calls Today always counts from full data set (today's date), not filtered
     const todayCalls = acAllData.filter(c => c.date === today);
@@ -8936,7 +8934,7 @@
 
     function acGetChartDates() {
     const { from, to } = acGetDateBounds();
-    const today = new Date().toISOString().split('T')[0];
+    const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const dates = [];
     if (!from) {
         // All time: last 14 days
@@ -9068,7 +9066,7 @@
     const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
     const a = document.createElement('a');
     a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
-    a.download = 'all-calls-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.download = 'all-calls-' + (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })() + '.csv';
     a.click();
     }
 

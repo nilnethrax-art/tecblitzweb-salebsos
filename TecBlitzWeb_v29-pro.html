@@ -4484,28 +4484,16 @@
         const _nk = canonicalRepKey(user.name);
         const _ek = canonicalRepKey(emailLocal);
         currentUser = USERS[_nk] ? _nk : (USERS[_ek] ? _ek : null);
+        console.log('currentUser resolved:', currentUser, '| name:', user.name, '| email:', emailLocal);
         if(!currentUser){
             setLoading(false);
             showError('Account not found in system. Contact admin.');
             return;
         }
         sessionStorage.setItem('currentUser', currentUser);
-        console.log('currentUser resolved:', currentUser);
-    
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);
-
         setLoading(false);
-        if (!USERS[user.id] && !USERS[user.email?.split('@')[0]] && !USERS[currentUser]) {
-            console.error('User profile not found in USERS map:', user.email);
-            showError('Account not configured. Contact admin.');
-            return;
-        }
-        if (!user || !user.name) {
-            setLoading(false);
-            showError('Account not configured. Contact admin.');
-            return;
-        }
         launchApp(user.name, user.role);
         if(typeof goPage === 'function') goPage('dashboard');
     } catch(e){

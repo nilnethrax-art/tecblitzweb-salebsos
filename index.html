@@ -1,4 +1,4 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
     <html lang="en">
     <head>
     <meta charset="UTF-8">
@@ -4444,13 +4444,15 @@
             role: 'User'
         };
         }
-        currentUser = user.name;
-    
+        const _nk = canonicalRepKey(user.name);
+        const _ek = canonicalRepKey(user.email ? user.email.split('@')[0] : '');
+        currentUser = USERS[_nk] ? _nk : (USERS[_ek] ? _ek : null);
+        console.log('currentUser resolved:', currentUser, '| raw:', user.name);
+        if(!currentUser){ setLoading(false); showError('Account not found. Contact admin.'); return; }
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);
-
         setLoading(false);
-        launchApp(user.name, user.role);
+        launchApp();
         if(typeof goPage === 'function') goPage('dashboard');
     } catch(e){
         setLoading(false);
@@ -7286,6 +7288,7 @@
     // ── launchApp — merged: cloud sync + avatar + badge polling ──
     function launchApp(){
     const u = USERS[currentUser];
+    if(!u){ console.error('launchApp: no USERS entry for', currentUser); showError('Account config error. Contact admin.'); return; }
     document.getElementById('login-screen').style.display='none';
     document.getElementById('app').style.display='block';
     // Avatar

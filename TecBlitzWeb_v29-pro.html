@@ -4480,7 +4480,9 @@
             role: 'User'
         };
         }
-        currentUser = canonicalRepKey(user.name);
+        const emailLocal = user.email ? user.email.split('@')[0] : '';
+        currentUser = USERS[user.name] ? user.name : (canonicalRepKey(user.name) || canonicalRepKey(emailLocal));
+        console.log('currentUser resolved to:', currentUser, '| from name:', user.name, '| emailLocal:', emailLocal);
     
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);

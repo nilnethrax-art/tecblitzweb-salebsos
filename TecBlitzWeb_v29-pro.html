@@ -4485,7 +4485,7 @@
         const _ek = canonicalRepKey(emailLocal);
         currentUser = USERS[_nk] ? _nk : (USERS[_ek] ? _ek : null);
         console.log('currentUser resolved:', currentUser, '| name:', user.name, '| email:', emailLocal);
-        if(!currentUser){
+        if (!currentUser) {
             setLoading(false);
             showError('Account not found in system. Contact admin.');
             return;
@@ -4494,8 +4494,7 @@
         sendLoginEmailNotification(user);
         void tryInsertLoginLog(user);
         setLoading(false);
-        launchApp(user.name, user.role);
-        if(typeof goPage === 'function') goPage('dashboard');
+        launchApp();
     } catch(e){
         setLoading(false);
         showError(e && e.message ? e.message : 'Login failed. Please try again.');

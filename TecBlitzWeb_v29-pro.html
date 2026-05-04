@@ -4508,6 +4508,10 @@
     }
     }
     function doLogout(){
+    sessionStorage.removeItem('currentUser');
+    localStorage.removeItem('calls');
+    localStorage.removeItem('prospects');
+    localStorage.removeItem('interested_leads');
     currentUser = null;
     const emailInput = document.getElementById('emailInput');
     const passwordInput = document.getElementById('passwordInput');

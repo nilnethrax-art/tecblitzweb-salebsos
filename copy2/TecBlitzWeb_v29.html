@@ -3931,9 +3931,10 @@
     }
     function normalizeProspectFromCloud(p){
     if(!p) return null;
-    var raw = (p.assignedTo != null && String(p.assignedTo).trim() !== '') ? p.assignedTo
+    var raw = (p.assignedto != null && String(p.assignedto).trim() !== '') ? p.assignedto
+        : ((p.assignedTo != null && String(p.assignedTo).trim() !== '') ? p.assignedTo
         : ((p.assigned_to != null && String(p.assigned_to).trim() !== '') ? p.assigned_to
-        : ((p.assignee != null && String(p.assignee).trim() !== '') ? p.assignee : ''));
+        : ((p.assignee != null && String(p.assignee).trim() !== '') ? p.assignee : '')));
     var assignedKey = String(raw || '').trim() ? canonicalRepKey(String(raw)) : '';
     return {
         id: String(p.id != null ? p.id : ''),

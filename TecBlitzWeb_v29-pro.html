@@ -4493,6 +4493,11 @@
             showError('Account not configured. Contact admin.');
             return;
         }
+        if (!user || !user.name) {
+            setLoading(false);
+            showError('Account not configured. Contact admin.');
+            return;
+        }
         launchApp(user.name, user.role);
         if(typeof goPage === 'function') goPage('dashboard');
     } catch(e){

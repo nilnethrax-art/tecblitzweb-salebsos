@@ -1017,9 +1017,10 @@
     .mobile-topbar-logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--text);}
     .mobile-topbar-logo b{color:var(--purple);}
     .mobile-hamburger{
-        width:36px;height:36px;border-radius:8px;border:1px solid var(--border);
+        width:44px;height:44px;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--border);
         background:transparent;display:flex;flex-direction:column;
         align-items:center;justify-content:center;gap:5px;cursor:pointer;
+        flex-shrink:0;
     }
     .mobile-hamburger span{
         display:block;width:18px;height:2px;
@@ -1041,6 +1042,11 @@
         MOBILE RESPONSIVE — ≤768px
     ══════════════════════════════════════════════ */
     @media(max-width:768px){
+        /* Prevent page-level horizontal scroll */
+        html,body{overflow-x:hidden;max-width:100%;}
+        #app,.app-layout,.main-content,.page{max-width:100%;overflow-x:hidden;}
+        body{font-size:14px;}
+
         /* Bottom navigation + floating log call */
         .bottom-nav{display:flex;}
         .log-call-fab{display:flex;}
@@ -1076,8 +1082,8 @@
         .login-left{padding:24px 20px;}
         .login-card{width:100%;max-width:400px;}
 
-        /* Stat cards stack for clarity; other grids single column */
-        .stat-grid{grid-template-columns:1fr !important;}
+        /* Stat cards stack vertically */
+        .stat-grid{grid-template-columns:1fr !important;gap:14px;margin-bottom:24px;}
         .stat-grid.stat-grid-bento .stat-bento-hero,
         .stat-grid.stat-grid-bento .stat-bento-side,
         .stat-grid.stat-grid-bento .stat-bento-sm,
@@ -1146,11 +1152,112 @@
         border-radius:12px;
         }
 
-        /* Tables — horizontal scroll, comfortable rows */
-        .table-wrap{-webkit-overflow-scrolling:touch;max-width:100%;}
-        .table-wrap table{min-width:min(100%,560px);}
-        td,th{padding:14px 12px;font-size:14px;}
-        th{font-size:11px;letter-spacing:.06em;}
+        /* Tables → card layout (no horizontal scroll); All Calls uses #ac-card-list */
+        .table-wrap:not(#ac-table-wrap){
+        overflow:visible;
+        max-width:100%;
+        border:none;
+        background:transparent;
+        box-shadow:none;
+        backdrop-filter:none;
+        -webkit-backdrop-filter:none;
+        }
+        .table-wrap:not(#ac-table-wrap) table{
+        min-width:0 !important;
+        width:100%;
+        display:block;
+        }
+        .table-wrap:not(#ac-table-wrap) thead{display:none;}
+        .table-wrap:not(#ac-table-wrap) tbody{display:block;}
+        .table-wrap:not(#ac-table-wrap) tbody tr{
+        display:block;
+        margin-bottom:14px;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:var(--radius);
+        background:var(--glass-card);
+        box-shadow:0 4px 24px rgba(0,0,0,0.28);
+        overflow:hidden;
+        }
+        .table-wrap:not(#ac-table-wrap) tbody tr:hover td{background:transparent;}
+        .table-wrap:not(#ac-table-wrap) td{
+        display:flex;
+        align-items:flex-start;
+        justify-content:space-between;
+        gap:12px;
+        width:100%;
+        padding:12px 16px;
+        font-size:14px;
+        min-height:var(--touch-min);
+        border-bottom:1px solid rgba(255,255,255,0.06);
+        white-space:normal !important;
+        max-width:none !important;
+        text-align:right;
+        box-sizing:border-box;
+        }
+        .table-wrap:not(#ac-table-wrap) td::before{
+        content:attr(data-label);
+        font-family:'Syne',sans-serif;
+        font-size:11px;
+        font-weight:700;
+        text-transform:uppercase;
+        letter-spacing:.05em;
+        color:var(--text-2);
+        text-align:left;
+        flex:0 0 36%;
+        max-width:42%;
+        line-height:1.35;
+        padding-top:2px;
+        }
+        .table-wrap:not(#ac-table-wrap) tbody tr td:last-child{border-bottom:none;}
+        .table-wrap:not(#ac-table-wrap) td .btn,
+        .table-wrap:not(#ac-table-wrap) td button{
+        min-height:var(--touch-min);
+        }
+        body.light .table-wrap:not(#ac-table-wrap) tbody tr{
+        border-color:rgba(0,0,0,0.08);
+        background:var(--glass-card);
+        }
+        /* Team management tables → cards */
+        .tm-table-wrap{overflow:visible;border:none;background:transparent;}
+        .tm-table{min-width:0 !important;display:block;width:100%;}
+        .tm-table thead{display:none;}
+        .tm-table tbody{display:block;}
+        .tm-table tbody tr{
+        display:block;
+        margin-bottom:14px;
+        border:1px solid var(--tm-border);
+        border-radius:var(--tm-radius);
+        background:var(--tm-surface);
+        overflow:hidden;
+        }
+        .tm-table td{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        padding:12px 16px;
+        font-size:14px;
+        min-height:var(--touch-min);
+        border-bottom:1px solid rgba(255,255,255,0.05);
+        }
+        .tm-table tbody tr td:last-child{border-bottom:none;}
+        .tm-edit-btn,.tm-delete-btn{min-height:var(--touch-min);padding:10px 16px;font-size:14px;}
+        .tm-stats-strip{flex-direction:column;}
+        .tm-stat + .tm-stat::before{left:10%;top:0;width:80%;height:1px;}
+        .tm-search-row{flex-direction:column;}
+        .tm-search-input,.tm-filter-select{width:100%;min-height:var(--touch-min);font-size:14px;}
+        .tm-add-btn{width:100%;justify-content:center;min-height:var(--touch-min);}
+        /* Modals — inline tables */
+        .modal table,.modal-overlay table{display:block;width:100% !important;min-width:0 !important;}
+        .modal table thead,.modal-overlay table thead{display:none;}
+        .modal table tbody,.modal-overlay table tbody{display:block;}
+        .modal table tr,.modal-overlay table tr{
+        display:block;margin-bottom:10px;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+        }
+        .modal table td,.modal table th,.modal-overlay table td,.modal-overlay table th{
+        display:block;padding:10px 14px;font-size:14px;text-align:left;border-bottom:1px solid var(--border);
+        }
+        td,th{font-size:14px;}
 
         /* Cards — readable padding */
         .card{padding:18px;}
@@ -1247,11 +1354,21 @@
         /* Section head — wrap */
         .section-head{flex-wrap:wrap;gap:8px;}
 
-        /* Revenue strip — 2 col then 1 */
-        .revenue-strip{grid-template-columns:1fr 1fr;}
+        /* Revenue strip — stack vertically */
+        .revenue-strip{grid-template-columns:1fr !important;}
+
+        /* Touch targets — buttons, inputs, tabs */
+        .btn,.btn-sm,.btn-primary,.btn-outline,.btn-purple,.btn-cyan,.btn-red,.btn-green,.tab,.pin-btn,.hero-cta{
+        min-height:var(--touch-min);
+        }
+        .btn-sm{padding:10px 16px;font-size:14px;}
+        .tab{padding:10px 16px;font-size:14px;min-height:var(--touch-min);}
+        .form-group input,.form-group select,.login-card .btn-primary{min-height:var(--touch-min);font-size:14px;}
+        .field input,.field select,.field textarea{font-size:14px;min-height:var(--touch-min);}
+        .search-bar select{min-height:var(--touch-min);font-size:14px;}
 
         /* Tab bar — full width scrollable */
-        .tab-bar{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+        .tab-bar{width:100%;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;}
 
         /* AI quick btns — scrollable row */
         #ai-panel-chat [style*="flex-wrap:wrap"]{flex-wrap:nowrap !important;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
@@ -1307,12 +1424,65 @@
 
         /* Pipeline section gap */
         #pipeline-content{gap:14px;}
+
+        /* Headings scale down on small screens */
+        .page-header h2{font-size:clamp(18px,5vw,22px);}
+        .section-head h3{font-size:clamp(17px,4.5vw,20px);}
+        .login-card h1{font-size:clamp(22px,6vw,26px);}
+        .card h3,.card h4{font-size:clamp(16px,4vw,18px);}
+
+        /* Static table row labels (My Calls) */
+        #page-mycalls .table-wrap tbody td:nth-child(1)::before{content:'Business';}
+        #page-mycalls .table-wrap tbody td:nth-child(2)::before{content:'Outcome';}
+        #page-mycalls .table-wrap tbody td:nth-child(3)::before{content:'Call Date';}
+        #page-mycalls .table-wrap tbody td:nth-child(4)::before{content:'Follow-up';}
+        #page-mycalls .table-wrap tbody td:nth-child(5)::before{content:'Notes';}
+        #page-mycalls .table-wrap tbody td:nth-child(6)::before{content:'Actions';}
+
+        /* Team management table row labels */
+        .tm-table tbody td:nth-child(1)::before{content:'Rep';}
+        .tm-table tbody td:nth-child(2)::before{content:'Role';}
+        .tm-table tbody td:nth-child(3)::before{content:'Reports To';}
+        .tm-table tbody td:nth-child(4)::before{content:'Email';}
+        .tm-table tbody td:nth-child(5)::before{content:'Phone';}
+        .tm-table tbody td:nth-child(6)::before{content:'PIN';}
+        .tm-table tbody td:nth-child(7)::before{content:'Actions';}
+
+        /* Dashboard recent calls — 7 columns (with Rep) */
+        #dash-recent-calls .table-wrap tbody td:nth-child(1)::before{content:'Date';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(2)::before{content:'Time';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(3)::before{content:'Rep';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(4)::before{content:'Business';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(5)::before{content:'Outcome';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(6)::before{content:'Follow-up';}
+        #dash-recent-calls .table-wrap tbody td:nth-child(7)::before{content:'Notes';}
+        /* 6 columns (rep tier — no Rep column) */
+        #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(3)::before{content:'Business';}
+        #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(4)::before{content:'Outcome';}
+        #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(5)::before{content:'Follow-up';}
+        #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(6)::before{content:'Notes';}
     }
 
-    /* ── Extra small — ≤400px ── */
+    /* ── Extra small — ≤400px (iPhone SE) ── */
     @media(max-width:400px){
-        .revenue-strip{grid-template-columns:1fr !important;}
-        .main-content{padding:14px 12px;padding-top:68px;}
+        .main-content{padding:12px 10px;padding-top:66px;padding-bottom:calc(20px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px));}
+        .card,.stat-card{padding:16px 14px;}
+        .modal{padding:20px 14px calc(18px + env(safe-area-inset-bottom,0px));}
+        .table-wrap:not(#ac-table-wrap) td,.tm-table td{padding:10px 12px;font-size:14px;}
+        .mobile-topbar{padding:0 12px;}
+        .page-header{margin-bottom:16px;}
+        .page-header h2{font-size:18px;}
+        .stat-num .stat-num-value{font-size:clamp(24px,7vw,28px)!important;}
+        .bar-label{width:72px;font-size:10px;}
+        .bar-val{font-size:11px;}
+        .login-card{padding:24px 18px;width:100%;}
+        .login-left{padding:20px 12px;}
+    }
+
+    /* ── Tablet / large phone — 391px–768px (iPhone 14, etc.) ── */
+    @media (min-width: 391px) and (max-width: 768px) {
+        .main-content{padding:16px 14px;padding-top:70px;}
+        .stat-grid{gap:14px;}
     }
 
     /* ══════════════════════════════════════════════
@@ -1994,7 +2164,7 @@
         .ac-stat-label { font-size: 9px !important; }
 
         /* ── Filter bar: full-width vertical stack ── */
-        #page-allcalls .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #page-allcalls .table-wrap { overflow: visible; }
 
         /* ── Filter bar wrapper — stack vertically ── */
         #ac-filter-bar {
@@ -2207,10 +2377,11 @@
     }
 
     @media (max-width: 767px), (pointer: coarse) {
-        .ui-theme-fab { width: 52px; height: 52px; right: 12px; bottom: 12px; }
-        .cmd-bar { bottom: 76px; }
+        .ui-theme-fab { width: 52px; height: 52px; right: 12px; bottom: calc(var(--bottom-nav-h) + 12px + env(safe-area-inset-bottom,0px)); }
+        .cmd-bar { bottom: calc(var(--bottom-nav-h) + 16px + env(safe-area-inset-bottom,0px)); width: min(740px, calc(100vw - 20px)); }
         .cursor-dot, .cursor-ring { display: none !important; }
-        .btn, .btn-primary, .tm-edit-btn { min-height: 44px; }
+        .btn, .btn-primary, .tm-edit-btn { min-height: var(--touch-min); }
+        #theme-fab { bottom: calc(var(--bottom-nav-h) + 16px + env(safe-area-inset-bottom,0px)); }
     }
 
     /* ── SPLASH SCREEN (2026) ── */
@@ -9125,9 +9296,15 @@
     <script>
     if ('serviceWorker' in navigator) {
     window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-        .then(function(reg) { console.log('SW registered:', reg.scope); })
-        .catch(function(err) { console.log('SW failed:', err); });
+        var swPath = '/sw.js';
+        console.log('SW register path:', swPath);
+        try {
+            navigator.serviceWorker.register(swPath)
+            .then(function(reg) { console.log('SW registered:', reg.scope); })
+            .catch(function(err) { console.log('SW failed:', err); });
+        } catch (err) {
+            console.log('SW register error:', err);
+        }
     });
     }
     </script>

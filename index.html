@@ -4076,10 +4076,18 @@
     async function ensureCurrentUserLoaded(){
     if(!currentUser) return null;
     if(USERS[currentUser]) return USERS[currentUser];
+    if(window.restoreSessionUserFromStorage){
+        var cached = window.restoreSessionUserFromStorage();
+        if(cached) return cached;
+    }
     if(window.USER_REGISTRY && typeof USER_REGISTRY.ensureCurrentUser === 'function'){
         return USER_REGISTRY.ensureCurrentUser(currentUser);
     }
     return USERS[currentUser] || null;
+    }
+    function setCurrentUserKey(key){
+    currentUser = key || null;
+    window.currentUser = currentUser;
     }
 
     // Helper: display label for dropdowns — "Name (@handle)"
@@ -4753,63 +4761,24 @@
         showError("App headers not ready. Reload the page.");
         return;
         }
-        if(!window.APP_API || typeof window.APP_API.loginWithEmailPassword !== 'function'){
+        if(typeof window.performSalesLogin !== 'function'){
         setLoading(false);
         showError("Login service not initialized");
         return;
         }
 
-        const loginResult = await window.APP_API.loginWithEmailPassword(email, password);
-        const authOk = typeof window.handleLoginResponse === 'function'
-        ? window.handleLoginResponse(loginResult)
-        : !(loginResult && loginResult.error);
-        const authUser = loginResult && loginResult.data && loginResult.data.user;
-        if(!authOk || !authUser){
+        const loginOut = await window.performSalesLogin(email, password);
+        if(!loginOut.ok){
         setLoading(false);
-        if(authOk && !authUser) showError("Invalid email or password");
+        showError(loginOut.error || 'Invalid email or password');
         return;
         }
 
-        var user;
-        try{
-        const res = await fetch(window.SB_URL + '/rest/v1/sales_users' +
-        '?email=eq.' + encodeURIComponent(email) + '&select=id,name,username,email,role,owned_reps', {
-        headers: window.BASE_HDR
-        });
-        var users = [];
-        try{ users = await res.json(); }catch(_je){ users = []; }
-        if(!Array.isArray(users)) users = [];
-        user = users[0] || {
-            name: (authUser.user_metadata && authUser.user_metadata.full_name) || (authUser.email ? authUser.email.split('@')[0] : email),
-            email: authUser.email || email,
-            role: 'User'
-            };
-        }catch(_fe){
-        user = {
-            name: (authUser.user_metadata && authUser.user_metadata.full_name) || (authUser.email ? authUser.email.split('@')[0] : email),
-            email: authUser.email || email,
-            role: 'User'
-        };
-        }
-        var loginKey = registerUserFromCloudRow(user);
-        if(!loginKey){
-        loginKey = canonicalRepKey(user.username || user.name || email.split('@')[0]);
-        currentUser = loginKey;
-        registerUserFromCloudRow({
-            id: user.id,
-            username: loginKey,
-            name: user.name || loginKey,
-            email: user.email || email,
-            role: user.role || 'Sales',
-            owned_reps: user.owned_reps
-        });
-        } else {
-        currentUser = loginKey;
-        }
-        sessionStorage.setItem('sos_user', currentUser);
+        setCurrentUserKey(loginOut.key);
+        var cloudUser = loginOut.row || loginOut.user;
 
-        sendLoginEmailNotification(user);
-        void tryInsertLoginLog(user);
+        sendLoginEmailNotification(cloudUser);
+        void tryInsertLoginLog(cloudUser);
 
         setLoading(false);
         await bootstrapUsersFromSupabase();
@@ -4822,8 +4791,9 @@
     }
     }
     function doLogout(){
-    currentUser = null;
+    setCurrentUserKey(null);
     sessionStorage.removeItem('sos_user');
+    sessionStorage.removeItem('sos_user_data');
     const emailInput = document.getElementById('emailInput');
     const passwordInput = document.getElementById('passwordInput');
     if(emailInput) emailInput.value = '';
@@ -4843,12 +4813,15 @@
     (function restoreSession(){
     const saved = sessionStorage.getItem('sos_user');
     if(!saved) return;
-    currentUser = saved;
+    setCurrentUserKey(saved);
     window.addEventListener('DOMContentLoaded', async function(){
+        if(window.restoreSessionUserFromStorage) window.restoreSessionUserFromStorage();
         await bootstrapUsersFromSupabase();
         await ensureCurrentUserLoaded();
         if(!USERS[currentUser]){
         sessionStorage.removeItem('sos_user');
+        sessionStorage.removeItem('sos_user_data');
+        setCurrentUserKey(null);
         return;
         }
         await launchApp();
@@ -7757,8 +7730,10 @@
     await ensureCurrentUserLoaded();
     const u = USERS[currentUser];
     if(!u){
-        console.error('launchApp: no USERS entry for currentUser=', currentUser);
+        console.error('launchApp: user profile missing for currentUser=', currentUser);
         sessionStorage.removeItem('sos_user');
+        sessionStorage.removeItem('sos_user_data');
+        setCurrentUserKey(null);
         document.getElementById('app').style.display='none';
         document.getElementById('login-screen').style.display='flex';
         document.getElementById('login-error').textContent='Session error. Please log in again.';

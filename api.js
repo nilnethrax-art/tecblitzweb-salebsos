@@ -190,6 +190,46 @@
     }
   }
 
+  /** Authenticate against sales_users.email + sales_users.password (not Supabase Auth). */
+  async function loginWithSalesUser(email, password){
+    var cfg = getConfig();
+    if(!cfg.SUPABASE_URL) return { data: null, error: { message: "Missing SUPABASE_URL" } };
+    var em = (email || "").trim();
+    var pw = password != null ? String(password) : "";
+    if(!em || !pw) return { data: null, error: { message: "Please enter email and password" } };
+
+    function pickRow(payload){
+      var rows = Array.isArray(payload) ? payload : (payload ? [payload] : []);
+      return rows.length ? rows[0] : null;
+    }
+
+    var select = "id,name,username,email,password,role,owned_reps";
+    var res = await safeFetch(
+      teamUrl("?select=" + select + "&email=eq." + encodeURIComponent(em) + "&limit=1"),
+      { headers: getBaseHeaders() }
+    );
+    if(res.error) return { data: null, error: res.error };
+    var row = pickRow(res.data);
+    if(!row){
+      var ilike = await safeFetch(
+        teamUrl("?select=" + select + "&email=ilike." + encodeURIComponent(em) + "&limit=1"),
+        { headers: getBaseHeaders() }
+      );
+      if(ilike.error) return { data: null, error: ilike.error };
+      row = pickRow(ilike.data);
+    }
+    if(!row) return { data: null, error: { message: "Invalid email or password" } };
+
+    var stored = row.password != null ? String(row.password) : "";
+    if(stored !== pw){
+      return { data: null, error: { message: "Invalid email or password" } };
+    }
+
+    var safe = Object.assign({}, row);
+    delete safe.password;
+    return { data: safe, error: null };
+  }
+
   async function insertLoginLogSafe(_row){
     try{ return; }catch(_e){}
   }
@@ -348,6 +388,7 @@
     safeFetch: safeFetch,
     baseHeaders: getBaseHeaders,
     loginWithEmailPassword: loginWithEmailPassword,
+    loginWithSalesUser: loginWithSalesUser,
     insertLoginLogSafe: insertLoginLogSafe,
     insertSalesUser: insertSalesUser,
     addNewRep: addNewRep,

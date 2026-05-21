@@ -390,8 +390,92 @@
     key = canonKey(key || window.currentUser);
     if(!key) return null;
     if(window.USERS && window.USERS[key]) return window.USERS[key];
+    if(typeof window.restoreSessionUserFromStorage === "function"){
+      var cached = window.restoreSessionUserFromStorage();
+      if(cached && window.USERS[key]) return window.USERS[key];
+    }
     await fetchOne(key);
     return window.USERS && window.USERS[key] ? window.USERS[key] : null;
+  }
+
+  function resolveLoginKey(row, email){
+    if(!row) return "";
+    var key = canonKey(row.username || row.name || "");
+    if(key) return key;
+    var em = (email || row.email || "").trim();
+    return em.indexOf("@") !== -1 ? canonKey(em.split("@")[0]) : canonKey(em);
+  }
+
+  function persistSessionUser(key, row){
+    key = canonKey(key);
+    if(!key) return null;
+    window.currentUser = key;
+    if(row){
+      registerFromRow(row);
+      try{
+        var snap = {
+          key: key,
+          id: row.id,
+          name: row.name,
+          username: row.username || key,
+          email: row.email,
+          role: row.role || "Sales",
+          owned_reps: row.owned_reps
+        };
+        sessionStorage.setItem("sos_user", key);
+        sessionStorage.setItem("sos_user_data", JSON.stringify(snap));
+      }catch(_e){}
+    }
+    return window.USERS && window.USERS[key] ? window.USERS[key] : null;
+  }
+
+  function restoreSessionUserFromStorage(){
+    try{
+      var raw = sessionStorage.getItem("sos_user_data");
+      if(!raw) return null;
+      var snap = JSON.parse(raw);
+      if(!snap || !snap.key) return null;
+      registerFromRow({
+        id: snap.id,
+        username: snap.username || snap.key,
+        name: snap.name || snap.key,
+        email: snap.email || "",
+        role: snap.role || "Sales",
+        owned_reps: snap.owned_reps
+      });
+      window.currentUser = canonKey(snap.key);
+      return window.USERS && window.USERS[window.currentUser] ? window.USERS[window.currentUser] : null;
+    }catch(_e2){
+      return null;
+    }
+  }
+
+  async function performSalesLogin(email, password){
+    if(!window.APP_API || typeof window.APP_API.loginWithSalesUser !== "function"){
+      return { ok: false, error: "Login service not initialized" };
+    }
+    var result = await window.APP_API.loginWithSalesUser(email, password);
+    if(result.error || !result.data){
+      var msg = result.error && result.error.message ? result.error.message : "Invalid email or password";
+      return { ok: false, error: msg };
+    }
+    var row = result.data;
+    var key = resolveLoginKey(row, email);
+    if(!key){
+      return { ok: false, error: "User account is missing a username" };
+    }
+    if(!row.username){
+      row = Object.assign({}, row, { username: key });
+    }
+    var user = persistSessionUser(key, row);
+    if(!user){
+      registerFromRow(row);
+      user = window.USERS && window.USERS[key] ? window.USERS[key] : null;
+    }
+    if(!user){
+      return { ok: false, error: "Could not load user profile" };
+    }
+    return { ok: true, key: key, user: user, row: row };
   }
 
   window.USER_REGISTRY = {
@@ -399,8 +483,14 @@
     registerFromRow: registerFromRow,
     fetchOne: fetchOne,
     bootstrapAll: bootstrapAll,
-    ensureCurrentUser: ensureCurrentUser
+    ensureCurrentUser: ensureCurrentUser,
+    resolveLoginKey: resolveLoginKey,
+    persistSessionUser: persistSessionUser,
+    restoreSessionUserFromStorage: restoreSessionUserFromStorage,
+    performSalesLogin: performSalesLogin
   };
+  window.performSalesLogin = performSalesLogin;
+  window.restoreSessionUserFromStorage = restoreSessionUserFromStorage;
 })();
 
 /* ── Team Members: add / delete sales_users (bigint id) ── */

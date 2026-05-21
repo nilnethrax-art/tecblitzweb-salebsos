@@ -280,6 +280,7 @@
 /* ── Team Members: add / delete sales_users (bigint id) ── */
 (function(){
   var TEAM_TABLE = "sales_users";
+  var isLoadingTeamMembers = false;
 
   function teamMemberCurrentRole(){
     var uid = window.currentUser;
@@ -340,27 +341,47 @@
     return { data: [], error: { message: "Supabase client not ready" } };
   }
 
-  async function loadTeamMembers(){
-    clearTeamMemberCaches();
+  /** Fetch only — never renders; never calls index loadTeamMembers. */
+  async function loadTeamMembersFromCloud(){
+    if(isLoadingTeamMembers || window._isLoadingTeamMembers){
+      return { data: window._teamMembersLive || [], error: null };
+    }
+    isLoadingTeamMembers = true;
+    window._isLoadingTeamMembers = true;
+    try{
+      clearTeamMemberCaches();
+      var res = await fetchTeamMembersFresh();
+      if(!res.error){
+        window._teamMembersLive = Array.isArray(res.data) ? res.data : [];
+      }
+      return res;
+    } finally{
+      isLoadingTeamMembers = false;
+      window._isLoadingTeamMembers = false;
+    }
+  }
 
-    var res = await fetchTeamMembersFresh();
+  /** Render only — uses provided rows or window._teamMembersLive; never fetches. */
+  function renderTeamMembers(rows){
+    var data = Array.isArray(rows) ? rows : (window._teamMembersLive || []);
+    window._teamMembersLive = data;
+    if(typeof window.mergeTeamMembersIntoUsers === "function"){
+      window.mergeTeamMembersIntoUsers(data);
+    }
+    if(typeof window.tmRenderStats === "function") window.tmRenderStats();
+    if(typeof window.tmRenderTable === "function") window.tmRenderTable();
+    if(typeof window.cooRenderTable === "function") window.cooRenderTable();
+  }
+
+  /** Full refresh: fetch from Supabase, then render. */
+  async function refreshTeamMembers(){
+    var res = await loadTeamMembersFromCloud();
     if(res.error){
       console.warn("sales_users load:", res.error.message || res.error);
       return res;
     }
-
-    var data = Array.isArray(res.data) ? res.data : [];
-    window._teamMembersLive = data;
-
-    if(typeof window.mergeTeamMembersIntoUsers === "function"){
-      window.mergeTeamMembersIntoUsers(data);
-    }
-
-    if(typeof window.tmRenderStats === "function") window.tmRenderStats();
-    if(typeof window.tmRenderTable === "function") window.tmRenderTable();
-    if(typeof window.cooRenderTable === "function") window.cooRenderTable();
-
-    return { data: data, error: null };
+    renderTeamMembers(res.data || []);
+    return { data: res.data || [], error: null };
   }
 
   async function removeRep(userId, localUid, displayName, skipConfirm){
@@ -397,7 +418,7 @@
         if(typeof window.tmRenderStats === "function") window.tmRenderStats();
         if(typeof window.tmRenderTable === "function") window.tmRenderTable();
         if(typeof window.cooRenderTable === "function") window.cooRenderTable();
-        await loadTeamMembers();
+        await refreshTeamMembers();
         return { error: null };
       }catch(e){
         console.error("Remove error:", e);
@@ -423,7 +444,7 @@
       if(typeof window.showToast === "function"){
         window.showToast("Rep removed successfully ✓", "success");
       }
-      await loadTeamMembers();
+      await refreshTeamMembers();
       return { error: null };
     }
 
@@ -434,7 +455,7 @@
         if(typeof window.showToast === "function"){
           window.showToast(name + " removed successfully ✓", "success");
         }
-        await loadTeamMembers();
+        await refreshTeamMembers();
         if(typeof window.tmRenderTable === "function") window.tmRenderTable();
         return { error: null };
       }
@@ -493,7 +514,7 @@
         if(typeof window.showToast === "function"){
           window.showToast("New rep added ✓", "success");
         }
-        await loadTeamMembers();
+        await refreshTeamMembers();
         return { data: inserted, error: null };
       }catch(e){
         console.error("Insert error:", e);
@@ -516,7 +537,7 @@
       if(typeof window.showToast === "function"){
         window.showToast("New rep added ✓", "success");
       }
-      await loadTeamMembers();
+      await refreshTeamMembers();
       return apiIns;
     }
 
@@ -587,5 +608,7 @@
   window.canManageTeamMembers = canManageTeamMembers;
   window.removeRep = removeRep;
   window.addNewRep = addNewRep;
-  window.loadTeamMembers = loadTeamMembers;
+  window.loadTeamMembersFromCloud = loadTeamMembersFromCloud;
+  window.renderTeamMembers = renderTeamMembers;
+  window.refreshTeamMembers = refreshTeamMembers;
 })();

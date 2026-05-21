@@ -4218,22 +4218,55 @@
     });
     ls('tm_extra_reps', extra);
     }
+    let isLoadingTeamMembers = false;
+
+    /** Fetch sales_users from Supabase only — no render, no loadTeamMembers call. */
     async function loadTeamMembersFromCloud(){
-    if(typeof window.loadTeamMembers === 'function'){
-        return window.loadTeamMembers();
+    if(isLoadingTeamMembers || window._isLoadingTeamMembers){
+        return { data: window._teamMembersLive || [], error: null };
     }
-    if(!window.APP_API||typeof APP_API.fetchTeamMembers!=='function') return;
-    var res = await APP_API.fetchTeamMembers();
-    if(res.error){
-        console.warn('sales_users load:', res.error.message||res.error);
-        return;
+    isLoadingTeamMembers = true;
+    window._isLoadingTeamMembers = true;
+    try{
+        if(window.TEAM_MEMBERS && typeof TEAM_MEMBERS.clearCaches === 'function'){
+            TEAM_MEMBERS.clearCaches();
+        }
+        var res;
+        if(window.TEAM_MEMBERS && typeof TEAM_MEMBERS.fetchFresh === 'function'){
+            res = await TEAM_MEMBERS.fetchFresh();
+        } else if(window.APP_API && typeof APP_API.fetchTeamMembers === 'function'){
+            res = await APP_API.fetchTeamMembers();
+        } else {
+            return { data: [], error: { message: 'Supabase not ready' } };
+        }
+        if(res.error){
+            console.warn('sales_users load:', res.error.message || res.error);
+            return res;
+        }
+        window._teamMembersLive = res.data || [];
+        return res;
+    } finally{
+        isLoadingTeamMembers = false;
+        window._isLoadingTeamMembers = false;
     }
-    window._teamMembersLive = res.data || [];
-    mergeTeamMembersIntoUsers(res.data||[]);
-    if(typeof tmRenderTable==='function') tmRenderTable();
-    if(typeof cooRenderTable==='function') cooRenderTable();
     }
-    function loadTeamMembers(){ return loadTeamMembersFromCloud(); }
+
+    /** Render team table from already-fetched rows — no cloud fetch. */
+    function loadTeamMembers(rows){
+    var data = rows != null ? rows : (window._teamMembersLive || []);
+    if(!Array.isArray(data)) data = [];
+    mergeTeamMembersIntoUsers(data);
+    if(typeof tmRenderStats === 'function') tmRenderStats();
+    if(typeof tmRenderTable === 'function') tmRenderTable();
+    if(typeof cooRenderTable === 'function') cooRenderTable();
+    }
+
+    /** Page load / after add-delete: fetch then render. */
+    async function refreshTeamMembers(){
+    var res = await loadTeamMembersFromCloud();
+    if(!res.error) loadTeamMembers(res.data || []);
+    return res;
+    }
     function saveOwnedRepsForMember(uid, ownedRepKeys){
     var ownedIds = Array.isArray(ownedRepKeys) && ownedRepKeys.length && typeof ownedRepKeys[0] === 'number'
         ? (window.APP_API ? APP_API.normalizeOwnedRepsBigint(ownedRepKeys) : ownedRepKeys)
@@ -6071,7 +6104,7 @@
     // Init Team Management
     if(_isCEO) initTeamMgmt();
     if(_isCOO) cooRenderTable();
-    loadTeamMembersFromCloud();
+    refreshTeamMembers();
     }
 
     // ════════════════════════════════════════
@@ -7636,7 +7669,7 @@
     // ── Init Team Management section ──
     function initTeamMgmt(){
     if(!isCEO(currentUser) && !isCOO(currentUser)) return; // CEO and COO can see it
-    loadTeamMembersFromCloud();
+    refreshTeamMembers();
 
     // Restore any extra reps into USERS memory
     const extra = ls('tm_extra_reps') || {};
@@ -7791,7 +7824,7 @@
             }
         }
         }).catch((e)=>{ console.error('❌ interested_leads fetch exception:', e); });
-        loadTeamMembersFromCloud();
+        refreshTeamMembers();
         // Load jobs from cloud (getJobs() reads Supabase when online)
         sbClient.from('jobs').select('*').then(async function(res){
         const data = res.data; const error = res.error;

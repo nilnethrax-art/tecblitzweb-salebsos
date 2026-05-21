@@ -3435,7 +3435,7 @@
                     </div>
                     <p class="tm-subtitle">Add and manage your sales reps. COOs: Add your own team members.</p>
                 </div>
-                <button class="tm-add-btn" onclick="tmOpenAddModal()">
+                <button class="tm-add-btn director-ceo-only" onclick="tmOpenAddModal()">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
                     Add New Rep
                 </button>
@@ -3741,12 +3741,10 @@
         <div class="tm-field">
             <label>Role *</label>
             <select id="tm-add-role">
-            <option value="Sales Rep">Sales Rep</option>
-            <option value="Sales Manager">Sales Manager</option>
-            <option value="Chief Operating Officer">Chief Operating Officer</option>
+            <option value="Sales Rep">Rep</option>
+            <option value="Sales">Sales</option>
+            <option value="Chief Operating Officer">COO</option>
             <option value="Co-CEO">Co-CEO</option>
-            <option value="Director / CEO">Director / CEO</option>
-            <option value="Other">Other</option>
             </select>
         </div>
         </div>
@@ -3762,11 +3760,17 @@
         </div>
         <div class="tm-form-grid">
         <div class="tm-field">
-            <label>User ID (login key) *</label>
-            <input type="text" id="tm-add-uid" placeholder="e.g. kasun (no spaces)" oninput="this.value=this.value.toLowerCase().replace(/\s/g,'')">
+            <label>Username (login key) *</label>
+            <input type="text" id="tm-add-uid" placeholder="e.g. SalesR13 (no spaces)" oninput="this.value=this.value.replace(/\s/g,'')">
         </div>
         <div class="tm-field">
-            <label>4-Digit PIN *</label>
+            <label>Password *</label>
+            <input type="text" id="tm-add-password" placeholder="Auto-generated if blank" autocomplete="new-password">
+        </div>
+        </div>
+        <div class="tm-form-grid">
+        <div class="tm-field">
+            <label>4-Digit PIN (app login)</label>
             <input type="password" id="tm-add-pin" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}">
         </div>
         </div>
@@ -3821,7 +3825,7 @@
         </div>
         <div class="tm-field">
             <label>Role *</label>
-            <select id="tm-edit-role">
+            <select id="tm-edit-role" onchange="tmShowOwnedRepsForRole(this.value, document.getElementById('tm-edit-uid').value)">
             <option value="Sales Rep">Sales Rep</option>
             <option value="Sales Manager">Sales Manager</option>
             <option value="Chief Operating Officer">Chief Operating Officer</option>
@@ -3840,6 +3844,13 @@
             <label>Phone</label>
             <input type="tel" id="tm-edit-phone" placeholder="+94 77 123 4567">
         </div>
+        </div>
+
+        <div class="tm-field tm-owned-reps-field" id="tm-edit-owned-reps-wrap" style="display:none;margin-top:14px;">
+            <label>Owns Sales Reps</label>
+            <select id="tm-edit-owned-reps" multiple size="6" style="width:100%;min-height:120px;padding:8px;border-radius:8px;border:1px solid var(--tm-border);background:rgba(255,255,255,0.06);color:var(--text);font-family:Outfit,sans-serif;font-size:13px;">
+            </select>
+            <p style="font-size:11px;color:var(--text-2);margin-top:6px;">Hold Ctrl (Windows) or Cmd (Mac) to select multiple reps. Controls which prospects this manager can see.</p>
         </div>
 
         <!-- PIN reset -->
@@ -4067,6 +4078,33 @@
     function isCEO(uid){ return USERS[uid]?.tier==='ceo'; }
     function isCOO(uid){ return USERS[uid]?.tier==='coo'; }
     function isMgmt(uid){ const t=USERS[uid]?.tier; return t==='ceo'||t==='coo'||t==='management'; }
+    function isDirectorCEO(uid){ uid=uid||currentUser; return !!(USERS[uid]&&USERS[uid].role==='CEO'); }
+    function isCoCEO(uid){ uid=uid||currentUser; return USERS[uid]?.role==='Co-CEO'; }
+    function isScopedManager(uid){ uid=uid||currentUser; return isCoCEO(uid)||isCOO(uid); }
+    function getOwnedRepUIDs(uid){
+    uid=uid||currentUser;
+    if(window.SALES_OS) return SALES_OS.getOwnedRepUIDs(uid,USERS);
+    return [];
+    }
+    function callVisibleToUser(c){
+    if(!c||!currentUser) return false;
+    if(window.SALES_OS) return SALES_OS.canSeeAssignedRecord(c,currentUser,USERS,'rep');
+    return true;
+    }
+    function leadVisibleToUser(l){
+    if(!l||!currentUser) return false;
+    if(window.SALES_OS) return SALES_OS.canSeeAssignedRecord(l,currentUser,USERS,'rep');
+    return true;
+    }
+    function filterCallsForCurrentUser(allCalls){
+    allCalls = allCalls || [];
+    if(isDirectorCEO(currentUser)) return allCalls;
+    if(isScopedManager(currentUser)){
+        var owned = getOwnedRepUIDs(currentUser);
+        return allCalls.filter(function(c){ return owned.includes(canonicalRepKey(c.rep)); });
+    }
+    return allCalls.filter(function(c){ return canonicalRepKey(c.rep)===canonicalRepKey(currentUser); });
+    }
     // COO's reps: stored as tm_coo_reps:{cooUid:[repUid,...]}
     function getCOORepUIDs(cooUid){
     const map = ls('tm_coo_reps')||{};
@@ -4086,12 +4124,50 @@
     }
     return null;
     }
-    // Visible reps for current user
+    // Visible reps for current user (CEO = all reps; Co-CEO/COO = owned_reps; Rep = self)
     function getVisibleRepUIDs(){
-    const u = USERS[currentUser];
-    // CEO, Co-CEO, COO and management can monitor all sales reps.
-    if(isMgmt(currentUser)) return Object.keys(USERS).filter(k=>USERS[k].tier==='rep');
+    if(window.SALES_OS) return SALES_OS.getVisibleRepUIDs(currentUser,USERS);
     return [currentUser];
+    }
+    function mergeTeamMembersIntoUsers(rows){
+    if(!Array.isArray(rows)) return;
+    rows.forEach(function(r){
+        var key = canonicalRepKey(String(r.username || r.name || ''));
+        if(!key || !USERS[key]) return;
+        var owned = window.SALES_OS ? SALES_OS.normalizeOwnedReps(r.owned_reps) : (r.owned_reps||[]);
+        USERS[key].owned_reps = owned;
+        var tm = getTMRepData(key)||{};
+        tm.owned_reps = owned;
+        if(r.id) tm.supabaseId = String(r.id);
+        ls('tm_rep_'+key, Object.assign({}, tm, { owned_reps: owned, supabaseId: tm.supabaseId }));
+    });
+    }
+    function loadTeamMembersFromCloud(){
+    if(!window.APP_API||typeof APP_API.fetchTeamMembers!=='function') return;
+    APP_API.fetchTeamMembers().then(function(res){
+        if(res.error){
+        console.warn('team_members load:', res.error.message||res.error);
+        return;
+        }
+        mergeTeamMembersIntoUsers(res.data||[]);
+        if(typeof tmRenderTable==='function') tmRenderTable();
+    });
+    }
+    function saveOwnedRepsForMember(uid, ownedReps){
+    var owned = window.SALES_OS ? SALES_OS.normalizeOwnedReps(ownedReps) : ownedReps;
+    if(USERS[uid]) USERS[uid].owned_reps = owned;
+    var tm = getTMRepData(uid)||{};
+    tm.owned_reps = owned;
+    ls('tm_rep_'+uid, Object.assign({}, tm, { owned_reps: owned }));
+    var cooMap = ls('tm_coo_reps')||{};
+    if(isCOO(uid)||isCoCEO(uid)){
+        cooMap[uid] = owned.slice();
+        ls('tm_coo_reps', cooMap);
+    }
+    if(window.APP_API&&typeof APP_API.upsertTeamMemberOwnedReps==='function'){
+        var rowId = (getTMRepData(uid)||{}).supabaseId || uid;
+        APP_API.upsertTeamMemberOwnedReps(rowId, owned).catch(function(e){ console.warn('owned_reps sync', e); });
+    }
     }
 
     // ════════════════════════════════════════
@@ -4968,16 +5044,8 @@
     }
     function prospectVisibleToUser(p, u){
     if(!p || !u) return false;
-    if(isCEO(currentUser)) return true;
-    if(u.tier === 'rep'){
-        return canonicalRepKey(p.assignedTo) === canonicalRepKey(currentUser) || p.assignedTo === currentUser;
-    }
-    if(u.tier === 'coo' || (u.tier === 'ceo' && u.role !== 'CEO')){
-        var vr = getVisibleRepUIDs();
-        var ak = canonicalRepKey(p.assignedTo);
-        return vr.includes(p.assignedTo) || vr.includes(ak) || p.assignedTo === currentUser || ak === canonicalRepKey(currentUser);
-    }
-    return true;
+    if(window.SALES_OS) return SALES_OS.canSeeAssignedRecord(p, currentUser, USERS, 'assignedTo');
+    return false;
     }
     function normalizeCloudCallRow(c){
     if(!c) return null;
@@ -5224,7 +5292,7 @@
 
     function renderMyCalls(){
     const tbody = document.getElementById('calls-tbody');
-    let calls = getCalls().filter(c=>c.rep===currentUser);
+    let calls = filterCallsForCurrentUser(getCalls());
     const q = (document.getElementById('calls-search')||{}).value||'';
     const f = (document.getElementById('calls-filter')||{}).value||'';
     if(q) calls = calls.filter(c=>(c.biz||'').toLowerCase().includes(q.toLowerCase())||((c.notes||'').toLowerCase().includes(q.toLowerCase())));
@@ -5265,12 +5333,7 @@
 
     function renderDashRecentCalls(){
     const u = USERS[currentUser];
-    const allCalls = getCalls();
-    const visibleReps = getVisibleRepUIDs();
-    let myCalls;
-    if(u.tier==='rep') myCalls = allCalls.filter(c=>c.rep===currentUser);
-    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>visibleReps.includes(c.rep));
-    else myCalls = allCalls;
+    let myCalls = filterCallsForCurrentUser(getCalls());
 
     // Filter by range
     let filtered = myCalls.filter(c=>c);
@@ -5329,12 +5392,7 @@
     document.getElementById('dash-date').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
     const u = USERS[currentUser];
     if(!u){ console.warn('renderDashboard: USERS['+String(currentUser)+'] is undefined'); return; }
-    const allCalls = getCalls();
-    const visibleReps = getVisibleRepUIDs();
-    let myCalls;
-    if(u.tier==='rep') myCalls = allCalls.filter(c=>c.rep===currentUser);
-    else if(isCOO(currentUser)) myCalls = allCalls.filter(c=>visibleReps.includes(c.rep));
-    else myCalls = allCalls;
+    let myCalls = filterCallsForCurrentUser(getCalls());
     const todayCalls = myCalls.filter(c=>c.date===today);
     const interested = myCalls.filter(c=>c.outcome==='Interested');
     const fueDue = myCalls.filter(c=>c.followup && c.followup>=today && c.followup<=new Date(Date.now()+7*86400000).toISOString().split('T')[0]);
@@ -5385,9 +5443,9 @@
     const heroC = document.getElementById('hero-calls-val');
     const heroL = document.getElementById('hero-leads-val');
     const heroP = document.getElementById('hero-prospects-val');
-    if(heroC) heroC.textContent = getCalls().filter(c=>c.date===(function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })()).length;
-    if(heroL) heroL.textContent = (getLeads ? getLeads() : []).length;
-    if(heroP) heroP.textContent = getProspects ? getProspects().length : '—';
+    if(heroC) heroC.textContent = myCalls.filter(c=>c.date===today).length;
+    if(heroL) heroL.textContent = String((getLeads()||[]).filter(leadVisibleToUser).length);
+    if(heroP) heroP.textContent = String(myProspects.length);
     }
 
     async function dashboardRefreshNow(){
@@ -5422,8 +5480,7 @@
     function renderFollowups(){
     const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const u = USERS[currentUser];
-    let calls = getCalls();
-    if(u.tier==='rep') calls = calls.filter(c=>c.rep===currentUser);
+    let calls = getCalls().filter(callVisibleToUser);
     const withFU = calls.filter(c=>c.followup && c.biz).sort((a,b)=>a.followup.localeCompare(b.followup));
     const overdue = withFU.filter(c=>c.followup<today);
     const dueToday = withFU.filter(c=>c.followup===today);
@@ -5467,11 +5524,11 @@
     // ════════════════════════════════════════
     function renderPerformance(){
     const today = (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
-    const calls = getCalls();
+    const calls = getCalls().filter(callVisibleToUser);
     const visibleReps = getVisibleRepUIDs();
-    const reps = Object.entries(USERS).filter(([k,v])=>v.tier==='rep' && visibleReps.includes(k));
+    const reps = Object.entries(USERS).filter(([k,v])=>(v.tier==='rep'||v.role==='Sales'||v.role==='Rep') && visibleReps.includes(canonicalRepKey(k)));
     const stats = reps.map(([uid,u])=>{
-        const rc = calls.filter(c=>c.rep===uid);
+        const rc = calls.filter(c=>canonicalRepKey(c.rep)===canonicalRepKey(uid));
         const int = rc.filter(c=>c.outcome==='Interested').length;
         const fu = rc.filter(c=>c.followup && c.followup>=today).length;
         const tod = rc.filter(c=>c.date===today).length;
@@ -5511,18 +5568,19 @@
     // ════════════════════════════════════════
     function renderRevenue(){
     const visibleReps = getVisibleRepUIDs();
-    let calls = getCalls();
-    if(isCOO(currentUser)) calls = calls.filter(c=>visibleReps.includes(c.rep));
+    let calls = getCalls().filter(callVisibleToUser);
     const interested = calls.filter(c=>c.outcome==='Interested');
-    const ps = getProspects();
+    const ps = getProspects().filter(p=>prospectVisibleToUser(p,USERS[currentUser]));
 
     // Get open pipeline leads (exclude won/lost — already moved to closed deals)
-    const allLeads = getLeads();
+    const allLeads = getLeads().filter(leadVisibleToUser);
     const openLeads = allLeads.filter(l => l.status !== 'won' && l.status !== 'lost');
 
     // Estimate pipeline value from open interested leads only
     let pipeline = 0;
-    let closed = getData('closed_deals',[]);
+    let closed = getData('closed_deals',[]).filter(function(d){
+        return window.SALES_OS ? SALES_OS.canSeeAssignedRecord(d, currentUser, USERS, 'rep') : true;
+    });
     let totalRevenue = closed.reduce((s,d)=>s+Number(d.value||0),0);
 
     openLeads.forEach(l=>{
@@ -5619,7 +5677,9 @@
     }).join('');
     }
     function renderClosedDeals(){
-    const closed = getData('closed_deals',[]);
+    const closed = getData('closed_deals',[]).filter(function(d){
+        return window.SALES_OS ? SALES_OS.canSeeAssignedRecord(d, currentUser, USERS, 'rep') : true;
+    });
     if(!closed.length) return '<div class="empty-state">No deals recorded yet.</div>';
     return `<div class="table-wrap"><table><thead><tr><th>Business</th><th>Value</th><th>Rep</th><th>Date</th><th></th></tr></thead><tbody>${
         closed.map((d,i)=>`<tr><td><strong>${esc(d.biz)}</strong></td><td style="color:var(--green);font-weight:700;">Rs. ${Number(d.value).toLocaleString()}</td><td>${esc(USERS[d.rep]?.name||d.rep)}</td><td>${fmt(d.date)}</td><td><button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;" onclick="deleteClosedDeal(${i})">×</button></td></tr>`).join('')
@@ -5860,11 +5920,15 @@
     function initSettingsPage(){
     const u = USERS[currentUser];
     const _isCEO = isCEO(currentUser);
+    const _isDirectorCEO = isDirectorCEO(currentUser);
     const _isCOO = isCOO(currentUser);
 
     // Show/hide CEO card
     document.querySelectorAll('.ceo-only').forEach(el=>{
         el.style.display = _isCEO ? '' : 'none';
+    });
+    document.querySelectorAll('.director-ceo-only').forEach(el=>{
+        el.style.display = _isDirectorCEO ? '' : 'none';
     });
 
     // COO section
@@ -5897,6 +5961,7 @@
     // Init Team Management
     if(_isCEO) initTeamMgmt();
     if(_isCOO) cooRenderTable();
+    loadTeamMembersFromCloud();
     }
 
     // ════════════════════════════════════════
@@ -6213,9 +6278,33 @@
 
     function tmTierFromRole(role){
     if(role==='Director / CEO' || role==='Co-CEO') return 'ceo';
-    if(role==='Chief Operating Officer') return 'coo';
+    if(role==='Chief Operating Officer' || role==='COO') return 'coo';
     if(role==='Sales Manager') return 'management';
     return 'rep';
+    }
+    function tmListSalesRepUids(){
+    return Object.keys(USERS).filter(function(uid){
+        var u = USERS[uid];
+        return u && (u.tier==='rep' || u.role==='Sales' || u.role==='Rep' || u.role==='Sales Rep');
+    });
+    }
+    function tmPopulateOwnedRepsSelect(selectEl, selected){
+    if(!selectEl) return;
+    var selectedCanon = (selected||[]).map(canonicalRepKey);
+    selectEl.innerHTML = tmListSalesRepUids().map(function(uid){
+        var sel = selectedCanon.indexOf(canonicalRepKey(uid)) !== -1 ? ' selected' : '';
+        return '<option value="'+uid+'"'+sel+'>'+esc(userLabel(uid))+'</option>';
+    }).join('');
+    }
+    function tmShowOwnedRepsForRole(role, editingUid){
+    var wrap = document.getElementById('tm-edit-owned-reps-wrap');
+    var sel = document.getElementById('tm-edit-owned-reps');
+    if(!wrap) return;
+    var targetShow = role==='Co-CEO' || role==='Chief Operating Officer' || role==='COO';
+    wrap.style.display = (targetShow && isDirectorCEO(currentUser)) ? '' : 'none';
+    if(wrap.style.display !== 'none' && sel){
+        tmPopulateOwnedRepsSelect(sel, getOwnedRepUIDs(editingUid));
+    }
     }
 
     // ── Render stats strip ──
@@ -6343,6 +6432,7 @@
         if(!cooMap[cooUid].includes(repUid)) cooMap[cooUid].push(repUid);
     }
     ls('tm_coo_reps', cooMap);
+    if(cooUid) saveOwnedRepsForMember(cooUid, cooMap[cooUid] || []);
     const managerName = cooUid ? (USERS[cooUid]?.name||cooUid) : 'unassigned';
     const repName = USERS[repUid]?.name || repUid;
     showToast(`${repName} → ${managerName}`,'success');
@@ -6436,11 +6526,11 @@
 
     // ── Open / Close modals ──
     function tmOpenAddModal(){
-    if(!isCEO(currentUser) && !isCOO(currentUser)){ showToast('CEO or COO access required','error'); return; }
+    if(!isDirectorCEO(currentUser)){ showToast('CEO only','error'); return; }
     tmAddPendingDP = null;
 
     // Reset fields
-    ['tm-add-name','tm-add-email','tm-add-phone','tm-add-uid','tm-add-pin'].forEach(id=>{
+    ['tm-add-name','tm-add-email','tm-add-phone','tm-add-uid','tm-add-pin','tm-add-password'].forEach(id=>{
         const el = document.getElementById(id);
         if(el) el.value='';
     });
@@ -6477,6 +6567,7 @@
     document.getElementById('tm-edit-phone').value = (r.phone && r.phone.trim()) || '';
     document.getElementById('tm-edit-pin').value = '';
     document.getElementById('tm-edit-photo-input').value = '';
+    tmShowOwnedRepsForRole(r.role, uid);
 
     // Avatar preview
     const dp = getTMRepDP(uid);
@@ -6504,9 +6595,9 @@
     document.getElementById(id).classList.remove('open');
     }
 
-    // ── Save new rep ──
-    function tmSaveNewRep(){
-    if(!isCEO(currentUser) && !isCOO(currentUser)){ showToast('CEO or COO access required','error'); return; }
+    // ── Save new rep (CEO → Supabase Auth + team_members) ──
+    async function tmSaveNewRep(){
+    if(!isDirectorCEO(currentUser)){ showToast('CEO only','error'); return; }
 
     const name = document.getElementById('tm-add-name').value.trim();
     const role = document.getElementById('tm-add-role').value;
@@ -6514,29 +6605,39 @@
     const phone = document.getElementById('tm-add-phone').value.trim();
     const uid = document.getElementById('tm-add-uid').value.trim();
     const pin = document.getElementById('tm-add-pin').value.trim();
+    let password = (document.getElementById('tm-add-password')||{}).value?.trim() || '';
+    if(!password) password = 'Tb' + Math.random().toString(36).slice(2,10) + '!';
 
     if(!name){ showToast('Full name is required','error'); return; }
-    if(!uid){ showToast('User ID is required','error'); return; }
-    if(/\s/.test(uid)){ showToast('User ID cannot have spaces','error'); return; }
+    if(!uid){ showToast('Username is required','error'); return; }
+    if(/\s/.test(uid)){ showToast('Username cannot have spaces','error'); return; }
+    if(!email){ showToast('Email is required for Supabase','error'); return; }
     if(pin && !/^\d{4}$/.test(pin)){ showToast('PIN must be exactly 4 digits','error'); return; }
 
-    // Check if UID already exists
     const allReps = getTMReps();
-    if(allReps[uid]){ showToast(`User ID "${uid}" already exists!`,'error'); return; }
+    if(allReps[uid]){ showToast(`Username "${uid}" already exists!`,'error'); return; }
 
     const tier = tmTierFromRole(role);
 
-    // Save extra rep
+    if(!window.APP_API || typeof APP_API.createRepInSupabase !== 'function'){
+        showToast('API not ready','error'); return;
+    }
+
+    const result = await APP_API.createRepInSupabase({
+        name, username: uid, uid, email, password, role,
+        created_by: currentUser,
+        owned_reps: []
+    });
+    if(result.error){
+        showToast(result.error.message || 'Failed to create rep in Supabase','error');
+        console.error('createRepInSupabase', result.error);
+        return;
+    }
+
     const extra = ls('tm_extra_reps') || {};
     extra[uid] = { name, role, tier, email, phone };
     ls('tm_extra_reps', extra);
 
-    // If added by COO, assign this rep to them
-    if(isCOO(currentUser)){
-        assignRepToCOO(currentUser, uid);
-    }
-
-    // Save PIN if provided
     if(pin){
         hashPIN(pin).then(hashed => {
         const pins = getData('pins',{});
@@ -6545,20 +6646,18 @@
         });
     }
 
-    // Save DP
     if(tmAddPendingDP){
-        setTMRepData(uid, { dp: tmAddPendingDP });
+        setTMRepData(uid, { dp: tmAddPendingDP, supabaseId: result.data?.authId });
+    } else if(result.data?.authId){
+        setTMRepData(uid, { supabaseId: result.data.authId });
     }
 
-    // Also add to USERS object in memory so login works
-    USERS[uid] = { name, role, tier };
+    USERS[uid] = { name, role, tier, email, owned_reps: [] };
 
     tmCloseModal('tm-add-modal');
     tmRenderStats();
     tmRenderTable();
-    showToast(`${name} added to the team!`,'success');
-    // Refresh COO section if COO added
-    if(isCOO(currentUser)) cooRenderTable();
+    showToast('Rep added and connected to Supabase ✓','success');
     }
 
 
@@ -6826,6 +6925,18 @@
 
     // STEP 12: Log audit trail
     logEditAudit(uid, 'edit_profile', currentData, newData, currentUser);
+
+    // STEP 12b: Owns Sales Reps (Co-CEO / COO)
+    var ownedWrap = document.getElementById('tm-edit-owned-reps-wrap');
+    if(ownedWrap && ownedWrap.style.display !== 'none'){
+        var ownedSel = document.getElementById('tm-edit-owned-reps');
+        if(ownedSel){
+        var picked = Array.from(ownedSel.selectedOptions).map(function(o){ return o.value; });
+        saveOwnedRepsForMember(uid, picked);
+        newData.owned_reps = picked;
+        ls('tm_rep_'+uid, Object.assign({}, verify, { owned_reps: picked }));
+        }
+    }
 
     // STEP 13: Clear pending state
     tmEditPendingDP = null;
@@ -7393,6 +7504,7 @@
     // ── Init Team Management section ──
     function initTeamMgmt(){
     if(!isCEO(currentUser) && !isCOO(currentUser)) return; // CEO and COO can see it
+    loadTeamMembersFromCloud();
 
     // Restore any extra reps into USERS memory
     const extra = ls('tm_extra_reps') || {};
@@ -7536,6 +7648,7 @@
             }
         }
         }).catch((e)=>{ console.error('❌ interested_leads fetch exception:', e); });
+        loadTeamMembersFromCloud();
         // Load jobs from cloud (getJobs() reads Supabase when online)
         sbClient.from('jobs').select('*').then(async function(res){
         const data = res.data; const error = res.error;
@@ -7976,12 +8089,12 @@
     }
 
     function updatePipelineNavBadge(){
-    const leads = getLeads();
     if(!isMgmt(currentUser)){
         const badge = document.getElementById('pipeline-nav-badge');
         if(badge) badge.textContent = '';
         return;
     }
+    let leads = getLeads().filter(leadVisibleToUser);
     const openCount = leads.filter(l => l.status !== 'won' && l.status !== 'lost').length;
     const badge = document.getElementById('pipeline-nav-badge');
     if(badge) badge.textContent = openCount > 0 ? openCount : '';
@@ -7996,8 +8109,10 @@
     // Access control: only management handles the pipeline. Everyone else sees nothing. Credit stays on lead.rep.
     if(!isMgmt(currentUser)){
         leads = [];
+    } else if(!isDirectorCEO(currentUser)){
+        const owned = getOwnedRepUIDs(currentUser);
+        leads = leads.filter(l => owned.includes(canonicalRepKey(l.rep)));
     }
-    // CEO, Co-CEO, and COO all see EVERY lead — no sub-filter.
 
     // Show/populate rep filter for management
     const repFilterEl = document.getElementById('pipeline-rep-filter');
@@ -8810,6 +8925,7 @@
     const { from, to } = acGetDateBounds();
 
     acFiltered = acAllData.filter(c => {
+        if (!callVisibleToUser(c)) return false;
         if (from && c.date < from) return false;
         if (to && c.date > to) return false;
         if (statusF && c.outcome !== statusF) return false;

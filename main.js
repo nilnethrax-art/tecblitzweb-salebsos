@@ -111,3 +111,122 @@
     };
   });
 })();
+
+/* ── Role-based prospect / call / lead visibility ── */
+(function(){
+  function canon(rep){
+    if(typeof window.canonicalRepKey === 'function') return window.canonicalRepKey(rep);
+    return rep == null ? '' : String(rep).trim();
+  }
+
+  function normalizeOwnedReps(raw){
+    if(raw == null) return [];
+    if(Array.isArray(raw)) return raw.map(function(x){ return String(x).trim(); }).filter(Boolean);
+    if(typeof raw === 'string'){
+      try{
+        var j = JSON.parse(raw);
+        if(Array.isArray(j)) return j.map(function(x){ return String(x).trim(); }).filter(Boolean);
+      }catch(_e){}
+      return raw.split(',').map(function(s){ return s.trim(); }).filter(Boolean);
+    }
+    return [];
+  }
+
+  function getUser(uid, USERS){
+    return (USERS || window.USERS || {})[uid];
+  }
+
+  function isDirectorCEO(uid, USERS){
+    var u = getUser(uid, USERS);
+    return !!(u && u.role === 'CEO');
+  }
+
+  function isCoCEO(uid, USERS){
+    return getUser(uid, USERS)?.role === 'Co-CEO';
+  }
+
+  function isCOOTier(uid, USERS){
+    return getUser(uid, USERS)?.tier === 'coo';
+  }
+
+  function isScopedManager(uid, USERS){
+    return isCoCEO(uid, USERS) || isCOOTier(uid, USERS);
+  }
+
+  function isSalesRepKey(k, USERS){
+    var u = USERS[k];
+    if(!u) return false;
+    return u.tier === 'rep' || u.role === 'Sales' || u.role === 'Rep' || u.role === 'Sales Rep';
+  }
+
+  function getSalesRepUids(USERS){
+    var out = [];
+    Object.keys(USERS || {}).forEach(function(k){
+      if(isSalesRepKey(k, USERS)) out.push(canon(k));
+    });
+    return out;
+  }
+
+  function getOwnedRepUIDs(uid, USERS){
+    var u = getUser(uid, USERS);
+    if(!u) return [];
+    var owned = normalizeOwnedReps(u.owned_reps);
+    if(!owned.length && typeof window.ls === 'function'){
+      var tm = window.ls('tm_rep_' + uid) || {};
+      owned = normalizeOwnedReps(tm.owned_reps);
+    }
+    if(!owned.length && (isCOOTier(uid, USERS) || isCoCEO(uid, USERS)) && typeof window.getCOORepUIDs === 'function'){
+      owned = window.getCOORepUIDs(uid) || [];
+    }
+    var seen = {};
+    return owned.map(canon).filter(function(k){
+      if(!k || seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+  }
+
+  function getVisibleRepUIDs(currentUid, USERS){
+    if(isDirectorCEO(currentUid, USERS)) return getSalesRepUids(USERS);
+    if(isScopedManager(currentUid, USERS)) return getOwnedRepUIDs(currentUid, USERS);
+    return [canon(currentUid)];
+  }
+
+  function getAssignedKey(record, assignField){
+    if(assignField === 'assignedTo'){
+      return canon(record.assignedTo || record.assigned_rep_id || record.assignee || '');
+    }
+    return canon(record.rep || record.assignedTo || '');
+  }
+
+  function canSeeAssignedRecord(record, currentUid, USERS, assignField){
+    if(!currentUid || !record) return false;
+    if(isDirectorCEO(currentUid, USERS)) return true;
+    var key = getAssignedKey(record, assignField);
+    if(!key && assignField === 'assignedTo') return false;
+    if(isScopedManager(currentUid, USERS)){
+      return getOwnedRepUIDs(currentUid, USERS).indexOf(key) !== -1;
+    }
+    return key === canon(currentUid);
+  }
+
+  function filterRecords(records, currentUid, USERS, assignField){
+    return (records || []).filter(function(r){
+      return canSeeAssignedRecord(r, currentUid, USERS, assignField);
+    });
+  }
+
+  window.SALES_OS = {
+    normalizeOwnedReps: normalizeOwnedReps,
+    isDirectorCEO: isDirectorCEO,
+    isCoCEO: isCoCEO,
+    isCOOTier: isCOOTier,
+    isScopedManager: isScopedManager,
+    getOwnedRepUIDs: getOwnedRepUIDs,
+    getVisibleRepUIDs: getVisibleRepUIDs,
+    getSalesRepUids: getSalesRepUids,
+    canSeeAssignedRecord: canSeeAssignedRecord,
+    filterRecords: filterRecords,
+    getAssignedKey: getAssignedKey
+  };
+})();

@@ -417,7 +417,13 @@
     padding:10px 12px;
     margin:2px 10px;
     border-radius:10px;
+    border:none;
+    background:transparent;
+    font-family:'Outfit',sans-serif;
+    width:calc(100% - 20px);
+    box-sizing:border-box;
     transition:color .15s,background .15s;
+    -webkit-tap-highlight-color:transparent;
     }
     .sidebar-bottom .logout-btn svg{pointer-events:none;}
     .sidebar-bottom .logout-btn:hover{color:var(--red);background:rgba(244,63,94,0.08);}
@@ -1030,13 +1036,23 @@
     .mobile-hamburger.open span:nth-child(2){opacity:0;}
     .mobile-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 
-    /* Sidebar overlay for mobile */
+    /* Sidebar overlay for mobile — full screen dim; tap to close */
     .sidebar-overlay{
-        display:none;position:fixed;
-        top:0;left:260px;right:0;bottom:0; /* only covers area OUTSIDE the sidebar */
-        background:rgba(0,0,0,0.45);z-index:205;
+        display:block;position:fixed;inset:0;
+        background:rgba(0,0,0,0.55);
+        z-index:205;
+        opacity:0;
+        visibility:hidden;
+        pointer-events:none;
+        transition:opacity 0.32s cubic-bezier(0.4,0,0.2,1),visibility 0.32s;
+        -webkit-tap-highlight-color:transparent;
     }
-    .sidebar-overlay.open{display:block;}
+    .sidebar-overlay.open{
+        opacity:1;
+        visibility:visible;
+        pointer-events:auto;
+    }
+    body.mobile-sidebar-open{overflow:hidden;}
 
     /* ══════════════════════════════════════════════
         MOBILE RESPONSIVE — ≤768px
@@ -1048,8 +1064,42 @@
         body{font-size:14px;}
 
         /* Bottom navigation + floating log call */
-        .bottom-nav{display:flex;}
+        .bottom-nav{
+        display:flex !important;
+        visibility:visible;
+        }
         .log-call-fab{display:flex;}
+        .bottom-nav .bn-item{
+        min-height:48px;
+        flex:1 1 0;
+        min-width:0;
+        max-width:20%;
+        padding:6px 2px;
+        }
+        .bottom-nav .bn-item span{
+        display:block;
+        max-width:100%;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        white-space:nowrap;
+        line-height:1.15;
+        font-size:10px;
+        letter-spacing:0.01em;
+        }
+        .bottom-nav .bn-item svg{
+        width:22px;height:22px;
+        flex-shrink:0;
+        }
+        .bottom-nav .bn-item.active{
+        color:#fff;
+        background:rgba(168,85,247,0.28);
+        box-shadow:0 0 0 1px rgba(168,85,247,0.45),0 4px 16px rgba(168,85,247,0.25);
+        }
+        .bottom-nav .bn-item.active span{font-weight:700;}
+        .bottom-nav .bn-item.active svg{
+        color:var(--cyan);
+        opacity:1;
+        }
 
         /* Show mobile topbar */
         .mobile-topbar{display:flex;}
@@ -1057,15 +1107,81 @@
         /* Sidebar slides in as drawer */
         .sidebar{
         transform:translateX(-100%);
-        transition:transform var(--t-fast);
+        transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
         z-index:150;
-        width:260px;
-        pointer-events:none; /* prevent closed sidebar eating touch events */
+        width:min(300px,88vw);
+        max-width:300px;
+        pointer-events:none;
+        box-shadow:8px 0 40px rgba(0,0,0,0.45);
         }
         .sidebar.open{
         transform:translateX(0);
-        pointer-events:auto; /* restore when open */
-        z-index:210; /* above mobile topbar (200) so nav items are tappable */
+        pointer-events:auto;
+        z-index:210;
+        }
+        /* User profile header first on mobile drawer */
+        .sidebar-brand{display:none;}
+        .sidebar-user{
+        order:0;
+        flex-shrink:0;
+        padding:20px 18px 18px;
+        margin:0;
+        border-bottom:1px solid rgba(255,255,255,0.08);
+        background:linear-gradient(180deg,rgba(168,85,247,0.12) 0%,transparent 100%);
+        gap:14px;
+        }
+        .sidebar-user .sidebar-avatar{
+        width:52px;height:52px;font-size:22px;
+        }
+        .sidebar-user-info .user-name{font-size:17px;}
+        .sidebar-user-info .user-role{font-size:13px;margin-top:2px;}
+        .sidebar-nav{
+        order:1;
+        padding:8px 0 12px;
+        }
+        .sidebar-nav .nav-item{
+        min-height:48px;
+        padding:12px 18px;
+        margin:4px 10px;
+        font-size:15px;
+        gap:12px;
+        }
+        .sidebar-nav .nav-item svg{width:20px;height:20px;}
+        .sidebar-bottom{
+        order:2;
+        flex-shrink:0;
+        padding:12px 10px calc(16px + env(safe-area-inset-bottom,0px));
+        border-top:1px solid rgba(255,255,255,0.08);
+        }
+        .sidebar-bottom .nav-item{
+        min-height:48px;
+        padding:12px 18px;
+        margin:4px 10px;
+        font-size:15px;
+        }
+        .sidebar-bottom .logout-btn.mobile-sign-out{
+        min-height:48px;
+        margin:8px 10px 4px;
+        padding:12px 16px;
+        justify-content:center;
+        gap:10px;
+        width:calc(100% - 20px);
+        box-sizing:border-box;
+        color:var(--red) !important;
+        background:rgba(244,63,94,0.14);
+        border:1px solid rgba(244,63,94,0.4);
+        font-size:15px;
+        font-weight:700;
+        font-family:'Outfit',sans-serif;
+        }
+        .sidebar-bottom .logout-btn.mobile-sign-out svg{
+        width:18px;height:18px;
+        stroke:var(--red);
+        flex-shrink:0;
+        }
+        .sidebar-bottom .logout-btn.mobile-sign-out:active{
+        background:rgba(244,63,94,0.22);
+        transform:scale(0.98);
         }
 
         /* Main content fills full width, offset for topbar + bottom nav */
@@ -1310,17 +1426,51 @@
         max-width:100%;
         box-sizing:border-box;
         padding:18px 16px;
+        overflow:hidden;
         }
-        .prospect-biz{font-size:17px;}
-        .prospect-pain{font-size:15px;line-height:1.5;}
-        .prospect-card .script-box{font-size:15px;line-height:1.55;}
-        .prospect-area{font-size:13px;}
+        .prospect-card-header .prospect-biz{
+        font-size:18px;
+        font-weight:700;
+        line-height:1.35;
+        word-break:break-word;
+        color:var(--text);
+        }
+        .prospect-card-header .prospect-meta{
+        display:flex;
+        flex-wrap:wrap;
+        align-items:center;
+        gap:8px;
+        margin-top:8px !important;
+        }
+        .prospect-card-header .prospect-area{
+        font-size:14px;
+        font-weight:600;
+        color:var(--cyan);
+        letter-spacing:0.02em;
+        }
+        .prospect-pain{font-size:15px;line-height:1.5;word-break:break-word;}
+        .prospect-card .script-box{font-size:15px;line-height:1.55;word-break:break-word;}
         .prospect-card-header{
         flex-direction:column;
         align-items:stretch;
-        gap:12px;
+        gap:14px;
         }
-        .prospect-card-header > div:last-child{
+        .prospect-card-actions{
+        display:flex !important;
+        flex-direction:row;
+        flex-wrap:wrap;
+        gap:10px;
+        width:100%;
+        }
+        .prospect-card-actions .btn,
+        .prospect-card-actions .btn-sm{
+        flex:1 1 auto;
+        min-width:120px;
+        min-height:48px !important;
+        font-size:15px;
+        font-weight:600;
+        }
+        .prospect-card-header > div:last-child:not(.prospect-card-actions){
         display:flex !important;
         flex-direction:column;
         gap:10px;
@@ -1461,11 +1611,34 @@
         #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(4)::before{content:'Outcome';}
         #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(5)::before{content:'Follow-up';}
         #dash-recent-calls .table-wrap tbody tr:has(td:nth-child(6):last-child):not(:has(td:nth-child(7))) td:nth-child(6)::before{content:'Notes';}
+
+        /* General mobile — no horizontal scroll, padded cards/lists */
+        .page,.card,.stat-card,.prospect-card,.followup-card,.lead-card,.empty-state,.inbox-lead-card{
+        max-width:100%;
+        box-sizing:border-box;
+        }
+        .page{overflow-x:hidden;}
+        .card,.prospect-card,.followup-card{padding:18px 16px;}
+        .info-row,.prospect-footer,.prospect-pain,.prospect-rep,.user-name,.page-header h2{
+        overflow-wrap:anywhere;
+        word-break:break-word;
+        }
+        body.light .sidebar-bottom .logout-btn.mobile-sign-out{
+        color:#DC2626 !important;
+        background:rgba(220,38,38,0.1);
+        border-color:rgba(220,38,38,0.35);
+        }
     }
 
-    /* ── Extra small — ≤400px (iPhone SE) ── */
+    /* ── Extra small — ≤400px (iPhone 12 Pro 390px, SE) ── */
     @media(max-width:400px){
+        :root{--bottom-nav-h:58px;}
         .main-content{padding:12px 10px;padding-top:66px;padding-bottom:calc(20px + var(--bottom-nav-h) + env(safe-area-inset-bottom,0px));}
+        .bottom-nav{padding:4px 2px calc(6px + env(safe-area-inset-bottom,0px));gap:2px;}
+        .bottom-nav .bn-item{min-height:46px;padding:4px 1px;}
+        .bottom-nav .bn-item span{font-size:9px;}
+        .bottom-nav .bn-item svg{width:20px;height:20px;}
+        .bottom-nav .bn-item.active{box-shadow:0 0 0 1px rgba(168,85,247,0.5),0 2px 12px rgba(168,85,247,0.3);}
         .card,.stat-card{padding:16px 14px;}
         .modal{padding:20px 14px calc(18px + env(safe-area-inset-bottom,0px));}
         .table-wrap:not(#ac-table-wrap) td,.tm-table td{padding:10px 12px;font-size:14px;}
@@ -2809,7 +2982,7 @@
     <div class="mobile-topbar-logo">Tec<b>Blitz</b>Web <span style="font-size:10px;font-weight:500;color:var(--text-2);letter-spacing:.3px;">SALES OS</span></div>
     <div id="mobile-topbar-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--purple-light);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--purple);"></div>
     </div>
-    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
 
     <!-- APP -->
     <div id="app">
@@ -2885,10 +3058,10 @@
             <svg viewBox="0 0 16 16" fill="none" width="16" height="16"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M3.2 12.8l1.1-1.1M11.7 4.3l1.1-1.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
             Settings
             </div>
-            <div class="logout-btn" onclick="doLogout()">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 12H3a1 1 0 01-1-1V3a1 1 0 011-1h2M9 10l3-3-3-3M12 7H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Sign out
-            </div>
+            <button type="button" class="logout-btn mobile-sign-out" onclick="doLogout()" aria-label="Sign out">
+            <svg width="18" height="18" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M5 12H3a1 1 0 01-1-1V3a1 1 0 011-1h2M9 10l3-3-3-3M12 7H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Sign Out
+            </button>
         </div>
         </aside>
 
@@ -4839,18 +5012,22 @@
     document.querySelectorAll('.nav-item').forEach(n=>{
         if(n.getAttribute('onclick') && n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('active');
     });
-    (function syncBottomNav(pageId){
+    if(window.MOBILE_UI && typeof MOBILE_UI.syncBottomNavActive === 'function'){
+        MOBILE_UI.syncBottomNavActive(id);
+    } else {
+        (function syncBottomNav(pageId){
         document.querySelectorAll('.bn-item').forEach(n=>n.classList.remove('active'));
         var primary=['dashboard','prospects','mycalls','followups'];
         if(primary.indexOf(pageId)>=0){
-        var b=document.querySelector('.bn-item[data-page="'+pageId+'"]');
-        if(b) b.classList.add('active');
+            var b=document.querySelector('.bn-item[data-page="'+pageId+'"]');
+            if(b) b.classList.add('active');
         } else {
-        var m=document.querySelector('.bn-item.bn-more');
-        if(m) m.classList.add('active');
+            var m=document.querySelector('.bn-item.bn-more');
+            if(m) m.classList.add('active');
         }
-    })(id);
-    if(window.innerWidth<=768) closeSidebar();
+        })(id);
+    }
+    if(typeof closeSidebar === 'function') closeSidebar();
     const renders = {
         dashboard: renderDashboard,
         prospects: renderProspects,
@@ -5108,7 +5285,7 @@
                 <span class="prospect-area">${esc(p.area)}</span>
             </div>
             </div>
-            <div style="display:flex;gap:6px;"><button class="btn btn-outline btn-sm" onclick='editProspectSafe("${prospectId}")'>Edit</button>${(USERS[currentUser]?.tier==='ceo')?`<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;" onclick="deleteProspect('${prospectId}')">×</button>`:''}</div>
+            <div class="prospect-card-actions"><button class="btn btn-outline btn-sm" onclick='editProspectSafe("${prospectId}")'>Edit</button>${(USERS[currentUser]?.tier==='ceo')?`<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;" onclick="deleteProspect('${prospectId}')">×</button>`:''}</div>
         </div>
         <div class="prospect-pain">${esc(p.pain||'No pain line set')}</div>
         ${p.script?`<div class="script-box">${esc(p.script)}</div>`:''}
@@ -8109,27 +8286,7 @@
     })();
 
 
-    // ── MOBILE SIDEBAR ──
-    function toggleSidebar(){
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const btn = document.getElementById('hamburger-btn');
-    const open = sidebar.classList.toggle('open');
-    overlay.classList.toggle('open', open);
-    btn.classList.toggle('open', open);
-    // iOS Safari: promote to compositing layer only while open
-    // When closed, remove will-change so it doesn't block touch events on content
-    sidebar.style.willChange = open ? 'transform' : 'auto';
-    }
-    function closeSidebar(){
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('sidebar-overlay');
-    const btn = document.getElementById('hamburger-btn');
-    sidebar.classList.remove('open');
-    overlay.classList.remove('open');
-    btn.classList.remove('open');
-    }
-
+    // Mobile sidebar: toggleSidebar / closeSidebar / MOBILE_UI.init — see main.js
 
     // ════════════════════════════════════════
     // INTERESTED LEADS PIPELINE

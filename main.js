@@ -895,3 +895,108 @@
   window.deleteGhostUsers = deleteGhostUsers;
   window.fetchTeamMembersFresh = fetchTeamMembersFresh;
 })();
+
+/* ── Mobile UI: sidebar drawer, overlay, bottom nav helpers ── */
+(function(){
+  var MOBILE_BREAK = 768;
+
+  function isMobile(){
+    return window.innerWidth <= MOBILE_BREAK;
+  }
+
+  function getSidebarEls(){
+    return {
+      sidebar: document.querySelector(".sidebar"),
+      overlay: document.getElementById("sidebar-overlay"),
+      hamburger: document.getElementById("hamburger-btn")
+    };
+  }
+
+  function setSidebarOpen(open){
+    var els = getSidebarEls();
+    if(!els.sidebar) return;
+    els.sidebar.classList.toggle("open", open);
+    if(els.overlay) els.overlay.classList.toggle("open", open);
+    if(els.hamburger) els.hamburger.classList.toggle("open", open);
+    els.sidebar.style.willChange = open ? "transform" : "auto";
+    document.body.classList.toggle("mobile-sidebar-open", open && isMobile());
+    if(els.overlay){
+      els.overlay.setAttribute("aria-hidden", open ? "false" : "true");
+    }
+  }
+
+  function openSidebar(){
+    if(!isMobile()) return;
+    setSidebarOpen(true);
+  }
+
+  function closeSidebar(){
+    setSidebarOpen(false);
+  }
+
+  function toggleSidebar(){
+    if(!isMobile()) return;
+    var els = getSidebarEls();
+    if(!els.sidebar) return;
+    setSidebarOpen(!els.sidebar.classList.contains("open"));
+  }
+
+  function bindSidebarNavClose(){
+    var sidebar = document.querySelector(".sidebar");
+    if(!sidebar) return;
+    sidebar.querySelectorAll(".sidebar-nav .nav-item[onclick], .sidebar-bottom .nav-item[onclick]").forEach(function(el){
+      el.addEventListener("click", function(){
+        if(isMobile()) closeSidebar();
+      });
+    });
+  }
+
+  function bindOverlay(){
+    var overlay = document.getElementById("sidebar-overlay");
+    if(!overlay) return;
+    overlay.addEventListener("click", function(e){
+      if(e.target === overlay) closeSidebar();
+    });
+  }
+
+  function syncBottomNavActive(pageId){
+    document.querySelectorAll(".bn-item").forEach(function(n){ n.classList.remove("active"); });
+    var primary = ["dashboard", "prospects", "mycalls", "followups"];
+    if(primary.indexOf(pageId) >= 0){
+      var b = document.querySelector('.bn-item[data-page="' + pageId + '"]');
+      if(b) b.classList.add("active");
+    } else {
+      var m = document.querySelector(".bn-item.bn-more");
+      if(m) m.classList.add("active");
+    }
+  }
+
+  function init(){
+    bindOverlay();
+    bindSidebarNavClose();
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape" && isMobile()) closeSidebar();
+    });
+    window.addEventListener("resize", function(){
+      if(!isMobile()) closeSidebar();
+    });
+  }
+
+  window.MOBILE_UI = {
+    init: init,
+    isMobile: isMobile,
+    openSidebar: openSidebar,
+    closeSidebar: closeSidebar,
+    toggleSidebar: toggleSidebar,
+    syncBottomNavActive: syncBottomNavActive
+  };
+  window.toggleSidebar = toggleSidebar;
+  window.closeSidebar = closeSidebar;
+  window.openSidebar = openSidebar;
+
+  if(document.readyState === "loading"){
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();

@@ -7965,6 +7965,11 @@
 
     function updatePipelineNavBadge(){
     const leads = getLeads();
+    if(USERS[currentUser] && USERS[currentUser].tier === 'rep'){
+        const badge = document.getElementById('pipeline-nav-badge');
+        if(badge) badge.textContent = '';
+        return;
+    }
     const openCount = leads.filter(l => l.status !== 'won' && l.status !== 'lost').length;
     const badge = document.getElementById('pipeline-nav-badge');
     if(badge) badge.textContent = openCount > 0 ? openCount : '';
@@ -7976,13 +7981,11 @@
     const u = USERS[currentUser];
     let leads = getLeads();
 
-    // Access control: reps see only their leads; mgmt/ceo/coo see all (or filtered)
+    // Access control: reps don't handle the pipeline; management does. Credit stays on lead.rep.
     if(u.tier === 'rep'){
-        leads = leads.filter(l => l.rep === currentUser);
-    } else if(isCOO(currentUser)){
-        const myReps = getVisibleRepUIDs();
-        leads = leads.filter(l => myReps.includes(l.rep) || l.rep === currentUser);
+        leads = [];
     }
+    // CEO, Co-CEO, and COO all see EVERY lead — no sub-filter.
 
     // Show/populate rep filter for management
     const repFilterEl = document.getElementById('pipeline-rep-filter');
@@ -7990,10 +7993,11 @@
         if(isMgmt(currentUser)){
         repFilterEl.style.display = '';
         // Build rep options from visible leads
-        const repUids = [...new Set(leads.map(l=>l.rep))];
+        const repUids = [...new Set(leads.map(l => canonicalRepKey(l.rep)).filter(Boolean))];
         const curVal = repFilterEl.value;
+        const curCanon = curVal ? canonicalRepKey(curVal) : '';
         repFilterEl.innerHTML = '<option value="">All Reps</option>' +
-            repUids.map(uid=>`<option value="${uid}" ${curVal===uid?'selected':''}>${esc(userLabel(uid))}</option>`).join('');
+            repUids.map(uid=>`<option value="${uid}" ${curCanon===uid?'selected':''}>${esc(userLabel(uid))}</option>`).join('');
         } else {
         repFilterEl.style.display = 'none';
         }
@@ -8001,7 +8005,7 @@
 
     // Rep filter
     const repFilter = repFilterEl?.value || '';
-    if(repFilter) leads = leads.filter(l => l.rep === repFilter);
+    if(repFilter) leads = leads.filter(l => canonicalRepKey(l.rep) === canonicalRepKey(repFilter));
 
     // Search filter
     const q = (document.getElementById('pipeline-search')||{}).value?.trim().toLowerCase()||'';
@@ -8198,7 +8202,7 @@
         closed.push({
             biz: lead.biz,
             value: pkgValue,
-            rep: lead.rep,
+            rep: canonicalRepKey(lead.rep),
             date: (function(){ const d = new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })(),
             pkg: lead.pkg || 'Business Website – Rs. 85,000',
             leadId: leadId,

@@ -1036,24 +1036,7 @@
     .mobile-hamburger.open span:nth-child(2){opacity:0;}
     .mobile-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
 
-    /* Sidebar overlay — hidden on desktop; full-screen dim on mobile only */
-    .sidebar-overlay{
-        display:none;
-        position:fixed;
-        top:0;left:0;
-        width:100%;height:100%;
-        max-width:100vw;
-        max-height:100vh;
-        margin:0;padding:0;
-        border:none;
-        background:rgba(0,0,0,0.6);
-        z-index:9998;
-        opacity:0;
-        pointer-events:none;
-        transition:opacity 0.32s cubic-bezier(0.4,0,0.2,1);
-        -webkit-tap-highlight-color:transparent;
-    }
-    body.mobile-sidebar-open{overflow:hidden;}
+    /* Mobile sidebar backdrop — created in JS when drawer opens (see main.js MOBILE_UI) */
 
     /* ══════════════════════════════════════════════
         MOBILE RESPONSIVE — ≤768px
@@ -1105,26 +1088,54 @@
         /* Show mobile topbar */
         .mobile-topbar{display:flex;}
 
-        /* Full-screen overlay when drawer open */
-        .sidebar-overlay.open{
-        display:block;
-        opacity:1;
-        pointer-events:auto;
+        /* Backdrop — only this element dims the screen (injected on body by MOBILE_UI) */
+        .mobile-sidebar-backdrop{
+        position:fixed !important;
+        top:0 !important;left:0 !important;
+        right:0 !important;bottom:0 !important;
+        width:100vw !important;
+        height:100vh !important;
+        margin:0 !important;padding:0 !important;
+        border:none !important;
+        background:rgba(0,0,0,0.5) !important;
+        z-index:9998 !important;
+        filter:none !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
+        opacity:1 !important;
+        -webkit-tap-highlight-color:transparent;
         }
-        /* Sidebar slides in as drawer — above overlay and all app chrome */
+        /* Page content stays normal — no extra dimming from filters */
+        #app,.app-layout,.main-content,.page,.mobile-topbar,.bottom-nav,.log-call-fab{
+        filter:none !important;
+        opacity:1 !important;
+        }
+        /* Sidebar drawer — solid panel on body, above backdrop */
         .sidebar{
+        position:fixed !important;
+        top:0 !important;left:0 !important;
+        height:100vh !important;
+        width:280px !important;
+        max-width:280px !important;
         transform:translateX(-100%);
         transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);
-        z-index:9999;
-        width:min(300px,88vw);
-        max-width:300px;
+        z-index:9999 !important;
         pointer-events:none;
-        box-shadow:8px 0 40px rgba(0,0,0,0.45);
+        background:#111118 !important;
+        backdrop-filter:none !important;
+        -webkit-backdrop-filter:none !important;
+        border-right:1px solid rgba(168,85,247,0.2);
+        box-shadow:4px 0 24px rgba(0,0,0,0.35);
+        isolation:isolate;
+        }
+        body.light .sidebar{
+        background:#F8FAFC !important;
+        border-right-color:rgba(0,0,0,0.1);
         }
         .sidebar.open{
         transform:translateX(0);
         pointer-events:auto;
-        z-index:9999;
+        z-index:9999 !important;
         }
         /* User profile header first on mobile drawer */
         .sidebar-brand{display:none;}
@@ -1134,8 +1145,11 @@
         padding:20px 18px 18px;
         margin:0;
         border-bottom:1px solid rgba(255,255,255,0.08);
-        background:linear-gradient(180deg,rgba(168,85,247,0.12) 0%,transparent 100%);
+        background:#111118;
         gap:14px;
+        }
+        body.light .sidebar .sidebar-user{
+        background:#F8FAFC;
         }
         .sidebar-user .sidebar-avatar{
         width:52px;height:52px;font-size:22px;
@@ -2998,8 +3012,6 @@
     <div class="mobile-topbar-logo">Tec<b>Blitz</b>Web <span style="font-size:10px;font-weight:500;color:var(--text-2);letter-spacing:.3px;">SALES OS</span></div>
     <div id="mobile-topbar-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--purple-light);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--purple);"></div>
     </div>
-    <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
-
     <!-- APP -->
     <div id="app">
     <div class="app-layout">

@@ -2856,7 +2856,7 @@
             Follow-ups
             </div>
 
-            <div class="nav-item" onclick="goPage('pipeline')" id="nav-pipeline">
+            <div class="nav-item mgmt-only" onclick="goPage('pipeline')" id="nav-pipeline">
             <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h9M2 12h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="13" cy="12" r="2" fill="currentColor" opacity=".7"/></svg>
             Interested Leads
             <span class="nav-badge badge-green" id="pipeline-nav-badge"></span>
@@ -7965,7 +7965,7 @@
 
     function updatePipelineNavBadge(){
     const leads = getLeads();
-    if(USERS[currentUser] && USERS[currentUser].tier === 'rep'){
+    if(!isMgmt(currentUser)){
         const badge = document.getElementById('pipeline-nav-badge');
         if(badge) badge.textContent = '';
         return;
@@ -7981,8 +7981,8 @@
     const u = USERS[currentUser];
     let leads = getLeads();
 
-    // Access control: reps don't handle the pipeline; management does. Credit stays on lead.rep.
-    if(u.tier === 'rep'){
+    // Access control: only management handles the pipeline. Everyone else sees nothing. Credit stays on lead.rep.
+    if(!isMgmt(currentUser)){
         leads = [];
     }
     // CEO, Co-CEO, and COO all see EVERY lead — no sub-filter.

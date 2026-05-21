@@ -3435,7 +3435,7 @@
                     </div>
                     <p class="tm-subtitle">Add and manage your sales reps. COOs: Add your own team members.</p>
                 </div>
-                <button class="tm-add-btn director-ceo-only" onclick="tmOpenAddModal()">
+                <button class="tm-add-btn tm-mgmt-add-btn" onclick="tmOpenAddModal()">
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
                     Add New Rep
                 </button>
@@ -3739,38 +3739,30 @@
             <input type="text" id="tm-add-name" placeholder="e.g. Kasun Perera" oninput="tmUpdateAddInitial()">
         </div>
         <div class="tm-field">
-            <label>Role *</label>
-            <select id="tm-add-role">
-            <option value="Sales Rep">Rep</option>
-            <option value="Sales">Sales</option>
-            <option value="Chief Operating Officer">COO</option>
-            <option value="Co-CEO">Co-CEO</option>
-            </select>
-        </div>
-        </div>
-        <div class="tm-form-grid">
-        <div class="tm-field">
-            <label>Email</label>
-            <input type="email" id="tm-add-email" placeholder="rep@tecblitz.lk">
-        </div>
-        <div class="tm-field">
-            <label>Phone</label>
-            <input type="tel" id="tm-add-phone" placeholder="+94 77 123 4567">
-        </div>
-        </div>
-        <div class="tm-form-grid">
-        <div class="tm-field">
-            <label>Username (login key) *</label>
+            <label>Username *</label>
             <input type="text" id="tm-add-uid" placeholder="e.g. SalesR13 (no spaces)" oninput="this.value=this.value.replace(/\s/g,'')">
         </div>
+        </div>
+        <div class="tm-form-grid">
         <div class="tm-field">
-            <label>Password *</label>
-            <input type="text" id="tm-add-password" placeholder="Auto-generated if blank" autocomplete="new-password">
+            <label>Role *</label>
+            <select id="tm-add-role">
+            <option value="Sales">Sales</option>
+            <option value="Rep">Rep</option>
+            </select>
+        </div>
+        <div class="tm-field">
+            <label>Email *</label>
+            <input type="email" id="tm-add-email" placeholder="rep@tecblitz.lk">
         </div>
         </div>
         <div class="tm-form-grid">
         <div class="tm-field">
-            <label>4-Digit PIN (app login)</label>
+            <label>Password</label>
+            <input type="text" id="tm-add-password" placeholder="8-char auto-generated if blank" autocomplete="new-password">
+        </div>
+        <div class="tm-field">
+            <label>4-Digit PIN (optional, app login)</label>
             <input type="password" id="tm-add-pin" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]{4}">
         </div>
         </div>
@@ -4081,6 +4073,27 @@
     function isDirectorCEO(uid){ uid=uid||currentUser; return !!(USERS[uid]&&USERS[uid].role==='CEO'); }
     function isCoCEO(uid){ uid=uid||currentUser; return USERS[uid]?.role==='Co-CEO'; }
     function isScopedManager(uid){ uid=uid||currentUser; return isCoCEO(uid)||isCOO(uid); }
+    function tmIsSalesRepRole(r){
+    if(!r) return false;
+    return r.tier==='rep' || r.role==='Sales' || r.role==='Rep' || r.role==='Sales Rep';
+    }
+    function tmCanAddRep(actorUid){
+    actorUid = actorUid || currentUser;
+    var a = USERS[actorUid];
+    if(!a) return false;
+    return a.tier==='ceo' || a.tier==='coo' || a.tier==='management' || a.role==='Co-CEO' || a.role==='Chief Operating Officer';
+    }
+    function tmCanDeleteRep(actorUid, targetUid){
+    actorUid = actorUid || currentUser;
+    var reps = getTMRepsFresh();
+    var target = reps[targetUid] || USERS[targetUid];
+    var actor = USERS[actorUid];
+    if(!actor || !target) return false;
+    if(actor.tier==='rep') return false;
+    if(isDirectorCEO(actorUid)) return true;
+    if(isCoCEO(actorUid) || isCOO(actorUid)) return tmIsSalesRepRole(target);
+    return false;
+    }
     function getOwnedRepUIDs(uid){
     uid=uid||currentUser;
     if(window.SALES_OS) return SALES_OS.getOwnedRepUIDs(uid,USERS);
@@ -4131,9 +4144,16 @@
     }
     function mergeTeamMembersIntoUsers(rows){
     if(!Array.isArray(rows)) return;
+    var extra = ls('tm_extra_reps') || {};
     rows.forEach(function(r){
-        var key = canonicalRepKey(String(r.username || r.name || ''));
-        if(!key || !USERS[key]) return;
+        var key = canonicalRepKey(String(r.name || r.username || ''));
+        if(!key) return;
+        if(!USERS[key]){
+        var role = r.role || 'Sales';
+        var tier = tmTierFromRole(role);
+        USERS[key] = { name: key, role: role, tier: tier, email: r.email || '' };
+        extra[key] = { name: key, role: role, tier: tier, email: r.email || '', source: 'cloud' };
+        }
         var owned = window.SALES_OS ? SALES_OS.normalizeOwnedReps(r.owned_reps) : (r.owned_reps||[]);
         USERS[key].owned_reps = owned;
         var tm = getTMRepData(key)||{};
@@ -4141,16 +4161,18 @@
         if(r.id) tm.supabaseId = String(r.id);
         ls('tm_rep_'+key, Object.assign({}, tm, { owned_reps: owned, supabaseId: tm.supabaseId }));
     });
+    ls('tm_extra_reps', extra);
     }
     function loadTeamMembersFromCloud(){
     if(!window.APP_API||typeof APP_API.fetchTeamMembers!=='function') return;
     APP_API.fetchTeamMembers().then(function(res){
         if(res.error){
-        console.warn('team_members load:', res.error.message||res.error);
+        console.warn('sales_users load:', res.error.message||res.error);
         return;
         }
         mergeTeamMembersIntoUsers(res.data||[]);
         if(typeof tmRenderTable==='function') tmRenderTable();
+        if(typeof cooRenderTable==='function') cooRenderTable();
     });
     }
     function saveOwnedRepsForMember(uid, ownedReps){
@@ -5930,6 +5952,9 @@
     document.querySelectorAll('.director-ceo-only').forEach(el=>{
         el.style.display = _isDirectorCEO ? '' : 'none';
     });
+    document.querySelectorAll('.tm-mgmt-add-btn').forEach(el=>{
+        el.style.display = tmCanAddRep(currentUser) ? '' : 'none';
+    });
 
     // COO section
     const cooSection = document.getElementById('coo-team-section');
@@ -6411,7 +6436,7 @@
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z"/></svg>
             Edit
             </button>
-            ${isCEO(currentUser) ? `<button class="tm-delete-btn" onclick="tmDeleteRep('${uid}', '${esc(r.name)}')">
+            ${tmCanDeleteRep(currentUser, uid) ? `<button class="tm-delete-btn" onclick="tmDeleteRep('${uid}', '${esc(r.name)}')">
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h12M4 3v8a2 2 0 002 2h2a2 2 0 002-2V3M6 7v4M8 7v4"/></svg>
             Remove
             </button>` : ''}
@@ -6526,15 +6551,15 @@
 
     // ── Open / Close modals ──
     function tmOpenAddModal(){
-    if(!isDirectorCEO(currentUser)){ showToast('CEO only','error'); return; }
+    if(!tmCanAddRep(currentUser)){ showToast('Management access required','error'); return; }
     tmAddPendingDP = null;
 
     // Reset fields
-    ['tm-add-name','tm-add-email','tm-add-phone','tm-add-uid','tm-add-pin','tm-add-password'].forEach(id=>{
+    ['tm-add-name','tm-add-email','tm-add-uid','tm-add-pin','tm-add-password'].forEach(id=>{
         const el = document.getElementById(id);
         if(el) el.value='';
     });
-    document.getElementById('tm-add-role').value = 'Sales Rep';
+    document.getElementById('tm-add-role').value = 'Sales';
     document.getElementById('tm-add-avatar-initial').textContent = '?';
     document.getElementById('tm-add-avatar-preview').style.background = 'linear-gradient(135deg,#3b82f6,#06b6d4)';
     document.getElementById('tm-add-avatar-preview').innerHTML = '<span id="tm-add-avatar-initial">?</span>';
@@ -6595,23 +6620,27 @@
     document.getElementById(id).classList.remove('open');
     }
 
-    // ── Save new rep (CEO → Supabase Auth + team_members) ──
+    // ── Save new rep → sales_users (direct insert, no Auth admin) ──
     async function tmSaveNewRep(){
-    if(!isDirectorCEO(currentUser)){ showToast('CEO only','error'); return; }
+    if(!tmCanAddRep(currentUser)){ showToast('Management access required','error'); return; }
 
-    const name = document.getElementById('tm-add-name').value.trim();
+    const displayName = document.getElementById('tm-add-name').value.trim();
     const role = document.getElementById('tm-add-role').value;
     const email = document.getElementById('tm-add-email').value.trim();
-    const phone = document.getElementById('tm-add-phone').value.trim();
     const uid = document.getElementById('tm-add-uid').value.trim();
     const pin = document.getElementById('tm-add-pin').value.trim();
     let password = (document.getElementById('tm-add-password')||{}).value?.trim() || '';
-    if(!password) password = 'Tb' + Math.random().toString(36).slice(2,10) + '!';
+    if(!password && window.APP_API && typeof APP_API.generatePassword8 === 'function'){
+        password = APP_API.generatePassword8();
+        document.getElementById('tm-add-password').value = password;
+    } else if(!password){
+        password = Math.random().toString(36).slice(2, 10);
+    }
 
-    if(!name){ showToast('Full name is required','error'); return; }
+    if(!displayName){ showToast('Full name is required','error'); return; }
     if(!uid){ showToast('Username is required','error'); return; }
     if(/\s/.test(uid)){ showToast('Username cannot have spaces','error'); return; }
-    if(!email){ showToast('Email is required for Supabase','error'); return; }
+    if(!email){ showToast('Email is required','error'); return; }
     if(pin && !/^\d{4}$/.test(pin)){ showToast('PIN must be exactly 4 digits','error'); return; }
 
     const allReps = getTMReps();
@@ -6619,23 +6648,28 @@
 
     const tier = tmTierFromRole(role);
 
-    if(!window.APP_API || typeof APP_API.createRepInSupabase !== 'function'){
+    if(!window.APP_API || typeof APP_API.insertSalesUser !== 'function'){
         showToast('API not ready','error'); return;
     }
 
-    const result = await APP_API.createRepInSupabase({
-        name, username: uid, uid, email, password, role,
-        created_by: currentUser,
+    const rowId = (window.APP_API.newRowId && APP_API.newRowId()) || ('su_' + Date.now());
+    const result = await APP_API.insertSalesUser({
+        id: rowId,
+        username: uid,
+        name: uid,
+        email: email,
+        role: role,
         owned_reps: []
     });
     if(result.error){
-        showToast(result.error.message || 'Failed to create rep in Supabase','error');
-        console.error('createRepInSupabase', result.error);
+        showToast(result.error.message || 'Failed to add rep in Supabase','error');
+        console.error('insertSalesUser', result.error);
         return;
     }
 
+    const supabaseId = (result.data && result.data.id) ? result.data.id : rowId;
     const extra = ls('tm_extra_reps') || {};
-    extra[uid] = { name, role, tier, email, phone };
+    extra[uid] = { name: displayName, role, tier, email, source: 'cloud' };
     ls('tm_extra_reps', extra);
 
     if(pin){
@@ -6647,17 +6681,18 @@
     }
 
     if(tmAddPendingDP){
-        setTMRepData(uid, { dp: tmAddPendingDP, supabaseId: result.data?.authId });
-    } else if(result.data?.authId){
-        setTMRepData(uid, { supabaseId: result.data.authId });
+        setTMRepData(uid, { dp: tmAddPendingDP, supabaseId: supabaseId, displayName: displayName });
+    } else {
+        setTMRepData(uid, { supabaseId: supabaseId, displayName: displayName });
     }
 
-    USERS[uid] = { name, role, tier, email, owned_reps: [] };
+    USERS[uid] = { name: displayName, role, tier, email, owned_reps: [] };
 
     tmCloseModal('tm-add-modal');
     tmRenderStats();
     tmRenderTable();
-    showToast('Rep added and connected to Supabase ✓','success');
+    if(typeof cooRenderTable === 'function') cooRenderTable();
+    showToast('New rep added ✓','success');
     }
 
 
@@ -7110,9 +7145,9 @@
             <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 1.5l3 3-8 8H1.5v-3l8-8z"/></svg>
             Edit
             </button>` : '<span class="tm-muted">—</span>'}
-            ${isCEO(currentUser) ? `<button class="tm-delete-btn" onclick="tmDeleteRep('${uid}', '${esc(r.name)}')">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h12M4 3v8a2 2 0 002 2h2a2 2 0 002-2V3M6 7v4M8 7v4"/></svg>
-            Delete
+            ${tmCanDeleteRep(currentUser, uid) ? `<button class="tm-delete-btn" onclick="tmDeleteRep('${uid}', '${esc(r.name)}')">
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h12M4 3v8a2 2 0 002 2h2a2 0 002-2V3M6 7v4M8 7v4"/></svg>
+            Remove
             </button>` : ''}
         </td>
         </tr>`;
@@ -7262,53 +7297,65 @@
     tmRenderTable();
     }
 
-    // ── Delete rep (CEO only) ──
-    function tmDeleteRep(uid, name){
-    if(!isCEO(currentUser)){ showToast('CEO access required','error'); return; }
-    
-    showConfirm(`Remove ${name} from the team? This cannot be undone.`, function(){
-        // Remove from extra reps if it's an extra rep
-        const extra = ls('tm_extra_reps') || {};
-        if(extra[uid]){
+    function tmRemoveRepLocal(uid){
+    const extra = ls('tm_extra_reps') || {};
+    if(extra[uid]){
         delete extra[uid];
         ls('tm_extra_reps', extra);
+    }
+    const cooReps = ls('tm_coo_reps') || {};
+    Object.keys(cooReps).forEach(function(cooUid){
+        cooReps[cooUid] = cooReps[cooUid].filter(function(repUid){ return repUid !== uid; });
+    });
+    ls('tm_coo_reps', cooReps);
+    localStorage.removeItem('tm_rep_'+uid);
+    const pins = getData('pins', {});
+    delete pins[uid];
+    ls('pins', pins);
+    localStorage.removeItem('dp_'+uid);
+    localStorage.removeItem('user_dp_'+uid);
+    delete USERS[uid];
+    const userSelect = document.getElementById('user-select');
+    if(userSelect){
+        const opt = userSelect.querySelector('option[value="'+uid+'"]');
+        if(opt) opt.remove();
+    }
+    }
+
+    // ── Delete rep (role-based) ──
+    function tmDeleteRep(uid, name){
+    if(!tmCanDeleteRep(currentUser, uid)){
+        showToast('You cannot remove this team member','error');
+        return;
+    }
+
+    showConfirm('Are you sure you want to remove '+name+'?', async function(){
+        const tm = getTMRepData(uid) || {};
+        const supabaseId = tm.supabaseId;
+
+        if(window.APP_API){
+            if(supabaseId && typeof APP_API.deleteSalesUser === 'function'){
+                const res = await APP_API.deleteSalesUser(supabaseId);
+                if(res.error){
+                    console.warn('deleteSalesUser by id:', res.error);
+                    showToast('Could not delete from cloud: '+(res.error.message||'error'),'error');
+                    return;
+                }
+            } else if(typeof APP_API.deleteSalesUserByName === 'function'){
+                const res = await APP_API.deleteSalesUserByName(uid);
+                if(res.error){
+                    console.warn('deleteSalesUserByName:', res.error);
+                }
+            }
         }
 
-        // Remove from COO assignments
-        const cooReps = ls('tm_coo_reps') || {};
-        Object.keys(cooReps).forEach(cooUid => {
-        cooReps[cooUid] = cooReps[cooUid].filter(repUid => repUid !== uid);
-        });
-        ls('tm_coo_reps', cooReps);
-
-        // Remove data overrides
-        localStorage.removeItem('tm_rep_'+uid);
-
-        // Remove PIN
-        const pins = getData('pins', {});
-        delete pins[uid];
-        ls('pins', pins);
-
-        // Remove DP
-        localStorage.removeItem('dp_'+uid);
-        localStorage.removeItem('user_dp_'+uid);
-
-        // Remove from USERS in memory
-        delete USERS[uid];
-
-        showToast(`${name} removed from the team.`,'success');
+        tmRemoveRepLocal(uid);
+        showToast('Rep removed successfully','success');
         tmCloseModal('tm-edit-modal');
         tmRenderStats();
         tmRenderTable();
-        cooRenderTable();
-        
-        // Refresh login dropdown
-        const userSelect = document.getElementById('user-select');
-        if(userSelect){
-        const opt = userSelect.querySelector(`option[value="${uid}"]`);
-        if(opt) opt.remove();
-        }
-    }, { icon:'del', confirmLabel:'Remove Rep', confirmClass:'btn-red' });
+        if(typeof cooRenderTable === 'function') cooRenderTable();
+    }, { icon:'del', confirmLabel:'Remove', confirmClass:'btn-red' });
     }
 
     // ════════════════════════════════════════

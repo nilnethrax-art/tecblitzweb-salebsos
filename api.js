@@ -1,4 +1,7 @@
 (function(){
+  /** Team/user rows — same table used at login (see index.html sales_users fetch). */
+  var TEAM_TABLE = "sales_users";
+
   function getConfig(){
     const cfg = window.APP_CONFIG || {};
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = cfg;
@@ -8,7 +11,7 @@
     return {
       SUPABASE_URL: SUPABASE_URL || "",
       SUPABASE_ANON_KEY: SUPABASE_ANON_KEY || "",
-      SUPABASE_SERVICE_ROLE_KEY: cfg.SUPABASE_SERVICE_ROLE_KEY || ""
+      TEAM_TABLE: TEAM_TABLE
     };
   }
 
@@ -21,14 +24,9 @@
     };
   }
 
-  function getServiceHeaders(){
+  function teamUrl(query){
     var cfg = getConfig();
-    var key = cfg.SUPABASE_SERVICE_ROLE_KEY || "";
-    return {
-      "Content-Type": "application/json",
-      "apikey": key,
-      "Authorization": "Bearer " + key
-    };
+    return (cfg.SUPABASE_URL || "") + "/rest/v1/" + TEAM_TABLE + (query || "");
   }
 
   async function safeFetch(url, options){
@@ -96,76 +94,79 @@
     };
   }
 
-  /**
-   * CEO-only: create Supabase Auth user + team_members row.
-   * Requires SUPABASE_SERVICE_ROLE_KEY in config.js (never commit the real key).
-   */
-  async function createRepInSupabase(repData){
-    var cfg = getConfig();
-    if(!cfg.SUPABASE_SERVICE_ROLE_KEY){
-      return { data: null, error: { message: "SUPABASE_SERVICE_ROLE_KEY not set in config.js — cannot create auth users from the browser." } };
-    }
-    if(!cfg.SUPABASE_URL){
-      return { data: null, error: { message: "Missing SUPABASE_URL" } };
-    }
-    var email = (repData.email || '').trim();
-    var password = repData.password || '';
-    var name = (repData.name || '').trim();
-    var username = (repData.username || repData.uid || '').trim();
-    var role = repData.role || 'Sales Rep';
-    if(!email || !password){
-      return { data: null, error: { message: "Email and password are required" } };
-    }
-    if(!username){
-      return { data: null, error: { message: "Username is required" } };
-    }
+  function newRowId(){
+    if(typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+    return "su_" + Date.now() + "_" + Math.random().toString(36).slice(2, 9);
+  }
 
-    var authRes = await safeFetch(cfg.SUPABASE_URL + "/auth/v1/admin/users", {
-      method: "POST",
-      headers: getServiceHeaders(),
-      body: JSON.stringify({
-        email: email,
-        password: password,
-        email_confirm: true,
-        user_metadata: { full_name: name, username: username, role: role }
-      })
-    });
-    if(authRes.error){
-      var msg = authRes.error.msg || authRes.error.message || authRes.error.error_description || "Auth user creation failed";
-      return { data: null, error: { message: msg, details: authRes.error } };
-    }
-    var authUser = authRes.data;
-    var authId = authUser && (authUser.id || authUser.user?.id);
-    if(!authId){
-      return { data: null, error: { message: "Auth user created but no user id returned" } };
-    }
+  function generatePassword8(){
+    var chars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    var out = "";
+    for(var i = 0; i < 8; i++) out += chars.charAt(Math.floor(Math.random() * chars.length));
+    return out;
+  }
+
+  /** Insert a new sales user (no Auth admin — client-safe). */
+  async function insertSalesUser(repData){
+    var cfg = getConfig();
+    if(!cfg.SUPABASE_URL) return { data: null, error: { message: "Missing SUPABASE_URL" } };
+
+    var username = (repData.username || repData.name || "").trim();
+    var email = (repData.email || "").trim();
+    var role = repData.role || "Sales";
+    if(!username) return { data: null, error: { message: "Username is required" } };
+    if(!email) return { data: null, error: { message: "Email is required" } };
 
     var row = {
-      id: authId,
-      name: name || username,
-      username: username,
+      id: repData.id || newRowId(),
+      name: username,
       email: email,
-      role: role,
-      owned_reps: repData.owned_reps || [],
-      created_by: repData.created_by || null
+      role: role
     };
+    if(repData.owned_reps) row.owned_reps = repData.owned_reps;
 
-    var tmRes = await safeFetch(cfg.SUPABASE_URL + "/rest/v1/team_members", {
+    var res = await safeFetch(teamUrl(), {
       method: "POST",
-      headers: Object.assign({}, getServiceHeaders(), { "Prefer": "resolution=merge-duplicates,return=representation" }),
+      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "return=representation" }),
       body: JSON.stringify(row)
     });
-    if(tmRes.error){
-      return { data: { authId: authId, authUser: authUser }, error: { message: "Auth user created but team_members insert failed: " + (tmRes.error.message || tmRes.error.msg || "unknown"), details: tmRes.error } };
+    if(res.error){
+      var msg = res.error.message || res.error.msg || res.error.hint || "Insert failed";
+      return { data: null, error: { message: msg, details: res.error } };
     }
-
-    return { data: { authId: authId, authUser: authUser, teamMember: Array.isArray(tmRes.data) ? tmRes.data[0] : tmRes.data }, error: null };
+    return {
+      data: {
+        id: row.id,
+        row: Array.isArray(res.data) ? res.data[0] : res.data
+      },
+      error: null
+    };
   }
 
   async function fetchTeamMembers(){
     var cfg = getConfig();
     if(!cfg.SUPABASE_URL) return { data: [], error: { message: "Missing SUPABASE_URL" } };
-    return safeFetch(cfg.SUPABASE_URL + "/rest/v1/team_members?select=*", { headers: getBaseHeaders() });
+    return safeFetch(teamUrl("?select=*"), { headers: getBaseHeaders() });
+  }
+
+  async function deleteSalesUser(memberId){
+    var cfg = getConfig();
+    if(!cfg.SUPABASE_URL) return { data: null, error: { message: "Missing SUPABASE_URL" } };
+    if(!memberId) return { data: null, error: { message: "Missing user id" } };
+    return safeFetch(teamUrl("?id=eq." + encodeURIComponent(memberId)), {
+      method: "DELETE",
+      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "return=minimal" })
+    });
+  }
+
+  /** Fallback when only login name is known (no uuid stored). */
+  async function deleteSalesUserByName(loginName){
+    var cfg = getConfig();
+    if(!cfg.SUPABASE_URL || !loginName) return { data: null, error: { message: "Missing name" } };
+    return safeFetch(teamUrl("?name=eq." + encodeURIComponent(loginName)), {
+      method: "DELETE",
+      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "return=minimal" })
+    });
   }
 
   async function upsertTeamMemberOwnedReps(memberKey, ownedReps){
@@ -173,40 +174,31 @@
     if(!cfg.SUPABASE_URL) return { data: null, error: { message: "Missing SUPABASE_URL" } };
     var reps = Array.isArray(ownedReps) ? ownedReps : [];
     var key = encodeURIComponent(memberKey || "");
-    var byUsername = cfg.SUPABASE_URL + "/rest/v1/team_members?username=eq." + key;
-    var res = await safeFetch(byUsername, {
-      method: "PATCH",
-      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "return=minimal" }),
-      body: JSON.stringify({ owned_reps: reps })
-    });
-    if(!res.error) return res;
-    return safeFetch(cfg.SUPABASE_URL + "/rest/v1/team_members?id=eq." + key, {
-      method: "PATCH",
-      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "return=minimal" }),
-      body: JSON.stringify({ owned_reps: reps })
-    });
+    var body = JSON.stringify({ owned_reps: reps });
+    var headers = Object.assign({}, getBaseHeaders(), { "Prefer": "return=minimal" });
+    var byName = await safeFetch(teamUrl("?name=eq." + key), { method: "PATCH", headers: headers, body: body });
+    if(!byName.error) return byName;
+    return safeFetch(teamUrl("?id=eq." + key), { method: "PATCH", headers: headers, body: body });
   }
 
   async function upsertTeamMemberRow(row){
-    var cfg = getConfig();
-    if(!cfg.SUPABASE_URL) return { data: null, error: { message: "Missing SUPABASE_URL" } };
-    return safeFetch(cfg.SUPABASE_URL + "/rest/v1/team_members", {
-      method: "POST",
-      headers: Object.assign({}, getBaseHeaders(), { "Prefer": "resolution=merge-duplicates,return=minimal" }),
-      body: JSON.stringify(row)
-    });
+    return insertSalesUser(row);
   }
 
   window.APP_API = {
+    TEAM_TABLE: TEAM_TABLE,
     createClient: createClient,
     safeFetch: safeFetch,
     baseHeaders: getBaseHeaders,
-    getServiceHeaders: getServiceHeaders,
     loginWithEmailPassword: loginWithEmailPassword,
     insertLoginLogSafe: insertLoginLogSafe,
-    createRepInSupabase: createRepInSupabase,
+    insertSalesUser: insertSalesUser,
     fetchTeamMembers: fetchTeamMembers,
+    deleteSalesUser: deleteSalesUser,
+    deleteSalesUserByName: deleteSalesUserByName,
     upsertTeamMemberOwnedReps: upsertTeamMemberOwnedReps,
-    upsertTeamMemberRow: upsertTeamMemberRow
+    upsertTeamMemberRow: upsertTeamMemberRow,
+    generatePassword8: generatePassword8,
+    newRowId: newRowId
   };
 })();

@@ -321,26 +321,19 @@
     console.log("Current user role:", teamMemberCurrentRole());
     console.log("Rep id type:", typeof userId, userId);
 
-    var numericId = toNumericRepId(userId, localUid);
-    if(numericId == null){
-      console.error("Delete error: invalid bigint id", userId, localUid);
-      if(typeof window.showToast === "function"){
-        window.showToast("Error: missing numeric rep id — reload team list and try again", "error");
-      }
-      return { error: { message: "Invalid rep id" } };
-    }
-
+    var name = displayName || localUid || "this rep";
     if(!skipConfirm){
-      var label = displayName || localUid || "this rep";
-      if(!window.confirm("Are you sure you want to remove " + label + "?")){
+      if(!window.confirm("Remove " + name + " from the team?")){
         return { error: { message: "Cancelled" } };
       }
     }
 
+    var numericId = toNumericRepId(userId, localUid);
+
     var client = window.APP_SUPABASE_CLIENT;
-    if(client && typeof client.from === "function"){
+    if(numericId != null && client && typeof client.from === "function"){
       try{
-        var result = await client.from(TEAM_TABLE).delete().eq("id", numericId);
+        var result = await client.from(TEAM_TABLE).delete().eq("id", Number(numericId));
         if(result && result.error){
           console.error("Delete error:", result.error);
           if(typeof window.showToast === "function"){
@@ -352,7 +345,7 @@
           window.tmRemoveRepLocal(localUid);
         }
         if(typeof window.showToast === "function"){
-          window.showToast("Rep removed successfully ✓", "success");
+          window.showToast(name + " removed successfully ✓", "success");
         }
         if(typeof window.tmCloseModal === "function") window.tmCloseModal("tm-edit-modal");
         if(typeof window.tmRenderStats === "function") window.tmRenderStats();
@@ -361,7 +354,7 @@
         await loadTeamMembers();
         return { error: null };
       }catch(e){
-        console.error("Delete error:", e);
+        console.error("Remove error:", e);
         if(typeof window.showToast === "function"){
           window.showToast("Error: " + (e.message || "Delete failed"), "error");
         }
@@ -369,7 +362,7 @@
       }
     }
 
-    if(window.APP_API && typeof window.APP_API.removeRep === "function"){
+    if(numericId != null && window.APP_API && typeof window.APP_API.removeRep === "function"){
       var apiRes = await window.APP_API.removeRep(numericId, true);
       if(apiRes && apiRes.error){
         console.error("Delete error:", apiRes.error);
@@ -388,10 +381,24 @@
       return { error: null };
     }
 
-    if(typeof window.showToast === "function"){
-      window.showToast("Error: Supabase not ready", "error");
+    if(localUid && window.APP_API && typeof window.APP_API.deleteSalesUserByUsername === "function"){
+      var byUser = await window.APP_API.deleteSalesUserByUsername(localUid);
+      if(!byUser.error){
+        if(typeof window.tmRemoveRepLocal === "function") window.tmRemoveRepLocal(localUid);
+        if(typeof window.showToast === "function"){
+          window.showToast(name + " removed successfully ✓", "success");
+        }
+        await loadTeamMembers();
+        if(typeof window.tmRenderTable === "function") window.tmRenderTable();
+        return { error: null };
+      }
     }
-    return { error: { message: "Supabase not ready" } };
+
+    console.error("Remove error: invalid bigint id", userId, localUid);
+    if(typeof window.showToast === "function"){
+      window.showToast("Error: missing numeric rep id — reload team list and try again", "error");
+    }
+    return { error: { message: "Invalid rep id" } };
   }
 
   async function addNewRep(formData){

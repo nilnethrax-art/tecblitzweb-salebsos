@@ -195,9 +195,10 @@
     if(!u) return "";
     if(isDirectorCEO(currentUid, USERS) || u.role === "CEO") return "";
     if(isCoCEO(currentUid, USERS) || isCOORole(currentUid, USERS)){
-      var owned = getOwnedRepIds(currentUid, USERS);
-      if(!owned.length) return ""; // No owned reps → see ALL (same as CEO)
-      return "&" + col + "=in.(" + owned.join(",") + ")";
+      // assignedto/rep columns store NAMES, but owned_reps are bigint IDs — a server-side
+      // IN(ids) filter can never match. Fetch all rows and let canSeeAssignedRecord()
+      // scope client-side (it resolves each record's name -> id against owned_reps).
+      return "";
     }
     return buildSalesRepAssigneeFilter(col, currentUid, USERS);
   }
